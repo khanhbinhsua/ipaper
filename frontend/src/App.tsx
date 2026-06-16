@@ -12,6 +12,7 @@ import DocumentDetailPage from './pages/DocumentDetailPage';
 import LeavePage from './pages/LeavePage';
 import ProfilePage from './pages/ProfilePage';
 import ChangePasswordPage from './pages/ChangePasswordPage';
+import TemplatesPage from './pages/TemplatesPage';
 import { useAuthStore } from './store/auth.store';
 
 const queryClient = new QueryClient();
@@ -41,6 +42,7 @@ export default function App() {
               <Route path="/create" element={<CreateDocumentPage />} />
               <Route path="/documents/:id" element={<DocumentDetailPage />} />
               <Route path="/leave" element={<LeavePage />} />
+              <Route path="/templates" element={<TemplatesPage />} />
               <Route path="/profile" element={<ProfilePage />} />
               <Route path="/change-password" element={<ChangePasswordPage />} />
             </Route>

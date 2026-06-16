@@ -1,6 +1,6 @@
 import { Form, Input, Select, DatePicker, Button, Card, Row, Col, message, Space } from 'antd';
 import { SaveOutlined, SendOutlined, RollbackOutlined } from '@ant-design/icons';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useMutation } from '@tanstack/react-query';
 import { api } from '../lib/api';
 import UserSelect from '../components/UserSelect';
@@ -16,6 +16,8 @@ const priorityOptions = [
 
 export default function CreateDocumentPage() {
   const navigate = useNavigate();
+  const location = useLocation();
+  const tpl = (location.state as any)?.template;
   const [form] = Form.useForm();
 
   const createMutation = useMutation({
@@ -51,8 +53,9 @@ export default function CreateDocumentPage() {
         </Space>
       </div>
 
-      <Card title="Thông tin hồ sơ">
-        <Form form={form} layout="vertical" initialValues={{ priority: 'normal' }}>
+      <Card title={tpl ? `Thông tin hồ sơ (từ mẫu: ${tpl.name})` : 'Thông tin hồ sơ'}>
+        <Form form={form} layout="vertical"
+          initialValues={{ priority: 'normal', docType: tpl?.docType, workflowId: tpl?.workflowId }}>
           <Row gutter={24}>
             <Col span={12}>
               <Form.Item name="title" label="Tiêu đề" rules={[{ required: true, message: 'Nhập tiêu đề' }]}>

@@ -5,6 +5,7 @@ import * as bcrypt from 'bcrypt';
 import { Tenant } from './tenants/tenant.entity';
 import { User, UserRole } from './users/user.entity';
 import { Document, DocumentStatus, DocumentPriority } from './documents/document.entity';
+import { Template } from './templates/template.entity';
 
 /**
  * Seed dữ liệu demo. Chạy: npm run seed
@@ -19,6 +20,7 @@ async function seed() {
   const tenantRepo = ds.getRepository(Tenant);
   const userRepo = ds.getRepository(User);
   const docRepo = ds.getRepository(Document);
+  const tplRepo = ds.getRepository(Template);
 
   // Xóa data cũ (theo thứ tự FK)
   await ds.query('TRUNCATE TABLE approvals, document_files, documents, leave_requests, notifications, users, templates, workflows, tenants RESTART IDENTITY CASCADE');
@@ -82,6 +84,15 @@ async function seed() {
       status: DocumentStatus.REJECTED, currentStep: 1,
       createdById: staff.id, orgUnit: 'CNTT',
     }),
+  ]);
+
+  // Biểu mẫu (templates)
+  await tplRepo.save([
+    tplRepo.create({ tenantId: tenant.id, name: 'Đơn đề xuất mua sắm', category: 'Hành chính', docType: 'Đề xuất' }),
+    tplRepo.create({ tenantId: tenant.id, name: 'Tờ trình phê duyệt', category: 'Hành chính', docType: 'Tờ trình' }),
+    tplRepo.create({ tenantId: tenant.id, name: 'Yêu cầu thanh toán', category: 'Kế toán', docType: 'Thanh toán' }),
+    tplRepo.create({ tenantId: tenant.id, name: 'Đề nghị tạm ứng', category: 'Kế toán', docType: 'Tạm ứng' }),
+    tplRepo.create({ tenantId: tenant.id, name: 'Đề nghị cấp thiết bị CNTT', category: 'CNTT', docType: 'Đề nghị' }),
   ]);
 
   console.log('\n✅ Seed thành công!');
