@@ -1,13 +1,18 @@
+import type { ReactNode } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ConfigProvider } from 'antd';
 import viVN from 'antd/locale/vi_VN';
 import LoginPage from './pages/LoginPage';
+import MainLayout from './components/MainLayout';
+import DashboardPage from './pages/DashboardPage';
+import CreateDocumentPage from './pages/CreateDocumentPage';
+import DocumentListPage from './pages/DocumentListPage';
 import { useAuthStore } from './store/auth.store';
 
 const queryClient = new QueryClient();
 
-function PrivateRoute({ children }: { children: React.ReactNode }) {
+function PrivateRoute({ children }: { children: ReactNode }) {
   const token = useAuthStore((s) => s.token);
   return token ? <>{children}</> : <Navigate to="/login" replace />;
 }
@@ -19,17 +24,16 @@ export default function App() {
         <BrowserRouter>
           <Routes>
             <Route path="/login" element={<LoginPage />} />
-            <Route
-              path="/*"
-              element={
-                <PrivateRoute>
-                  {/* MainLayout sẽ được thêm ở bước tiếp theo */}
-                  <div style={{ padding: 24 }}>
-                    <h2>iPaper Dashboard — đang phát triển</h2>
-                  </div>
-                </PrivateRoute>
-              }
-            />
+            <Route element={<PrivateRoute><MainLayout /></PrivateRoute>}>
+              <Route path="/" element={<DashboardPage />} />
+              <Route path="/inbox" element={<DocumentListPage box="inbox" />} />
+              <Route path="/outbox" element={<DocumentListPage box="outbox" />} />
+              <Route path="/draft" element={<DocumentListPage box="draft" />} />
+              <Route path="/related" element={<DocumentListPage box="related" />} />
+              <Route path="/search" element={<DocumentListPage box="all" />} />
+              <Route path="/create" element={<CreateDocumentPage />} />
+            </Route>
+            <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </BrowserRouter>
       </ConfigProvider>
