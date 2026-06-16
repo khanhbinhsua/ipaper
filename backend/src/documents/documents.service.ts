@@ -78,8 +78,11 @@ export class DocumentsService {
           .andWhere('d.status = :pending', { pending: DocumentStatus.PENDING });
         break;
       case 'outbox':
-        qb.andWhere('d.createdById = :userId', { userId })
-          .andWhere('d.status != :draft', { draft: DocumentStatus.DRAFT });
+        // Hồ sơ đi = hồ sơ mà người dùng đã thao tác (gửi/duyệt/từ chối/trả về)
+        qb.andWhere(
+          'EXISTS (SELECT 1 FROM approvals a WHERE a."documentId" = d.id AND a."actorId" = :userId)',
+          { userId },
+        );
         break;
       case 'draft':
         qb.andWhere('d.createdById = :userId', { userId })
@@ -128,7 +131,7 @@ export class DocumentsService {
 
     const [inbox, outbox, draft, related, approved, rejected, pending, total] = await Promise.all([
       base().clone().andWhere('d.assignedToId = :userId AND d.status = :s', { userId, s: DocumentStatus.PENDING }).getCount(),
-      base().clone().andWhere('d.createdById = :userId AND d.status != :d', { userId, d: DocumentStatus.DRAFT }).getCount(),
+      base().clone().andWhere('EXISTS (SELECT 1 FROM approvals a WHERE a."documentId" = d.id AND a."actorId" = :userId)', { userId }).getCount(),
       base().clone().andWhere('d.createdById = :userId AND d.status = :d', { userId, d: DocumentStatus.DRAFT }).getCount(),
       base().clone().andWhere('d.ccUserIds @> :ccUser', { ccUser: JSON.stringify([userId]) }).getCount(),
       base().clone().andWhere('d.status = :s', { s: DocumentStatus.APPROVED }).getCount(),
