@@ -53,7 +53,7 @@ export default function CreateDocumentPage() {
 
   return (
     <div>
-      {/* Thanh tiêu đề kiểu HDBank */}
+      {/* Thanh tiêu đề */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingBottom: 12, borderBottom: '2px solid #f0f0f0', marginBottom: 20 }}>
         <span style={{ fontSize: 18, fontWeight: 600, color: '#E4002B' }}>▦ Hồ sơ {tpl ? `— ${tpl.name}` : ''}</span>
         <div style={{ display: 'flex', gap: 8 }}>
@@ -120,7 +120,7 @@ export default function CreateDocumentPage() {
         </Row>
       </Form>
 
-      {/* Nút thao tác — giữa, kiểu HDBank */}
+      {/* Nút thao tác — căn giữa */}
       <div style={{ display: 'flex', justifyContent: 'center', gap: 12, margin: '8px 0 28px' }}>
         <Button danger type="primary" icon={<SaveOutlined />} onClick={handleSaveDraft} loading={createMutation.isPending}>Lưu</Button>
         <Button type="primary" icon={<SendOutlined />} onClick={handleSubmit} loading={createMutation.isPending}>Gửi duyệt</Button>

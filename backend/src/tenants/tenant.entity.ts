@@ -6,7 +6,7 @@ export class Tenant {
   id: string;
 
   @Column({ unique: true })
-  slug: string; // vd: hdbank, benhvien-abc
+  slug: string; // vd: demo, benhvien-abc
 
   @Column()
   name: string;

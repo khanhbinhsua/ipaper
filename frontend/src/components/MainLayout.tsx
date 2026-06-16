@@ -76,13 +76,13 @@ export default function MainLayout() {
 
   return (
     <Layout style={{ minHeight: '100vh' }}>
-      {/* Viền đỏ HDBank trên cùng */}
+      {/* Viền đỏ thương hiệu trên cùng */}
       <div style={{ height: 3, background: '#E4002B' }} />
 
       <Layout>
         <Sider theme="light" width={235} style={{ borderRight: '1px solid #f0f0f0' }}>
           <div style={{ padding: '16px', borderBottom: '3px solid #E4002B', display: 'flex', alignItems: 'center', gap: 8 }}>
-            <span style={{ fontSize: 26, fontWeight: 800, color: '#E4002B', letterSpacing: -1 }}>HDBank</span>
+            <span style={{ fontSize: 26, fontWeight: 800, color: '#E4002B', letterSpacing: -1 }}>iPaper</span>
             <span style={{ color: '#F9A01B', fontSize: 18 }}>✦</span>
           </div>
           <Menu
@@ -98,7 +98,7 @@ export default function MainLayout() {
           <Header style={{ background: '#fff', padding: '0 24px', height: 64, display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid #f0f0f0' }}>
             <div style={{ display: 'flex', alignItems: 'baseline', gap: 10 }}>
               <span style={{ fontSize: 20, fontWeight: 700, color: '#333' }}>iPaper System</span>
-              <span style={{ fontSize: 12, color: '#E4002B', fontWeight: 600 }}>PRODUCTION VERSION</span>
+              <span style={{ fontSize: 12, color: '#888' }}>Luồng văn bản điện tử</span>
             </div>
 
             <div style={{ display: 'flex', alignItems: 'center', gap: 24 }}>
@@ -127,7 +127,7 @@ export default function MainLayout() {
           </Content>
 
           <div style={{ textAlign: 'center', padding: 10, background: '#E4002B', color: '#fff', fontSize: 12 }}>
-            © Copyright {new Date().getFullYear()} HDBank iPaper System
+            © Copyright {new Date().getFullYear()} iPaper System
           </div>
         </Layout>
       </Layout>

@@ -22,13 +22,13 @@ export default function LoginPage() {
     <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#f0f2f5' }}>
       <Card style={{ width: 380, boxShadow: '0 4px 24px rgba(0,0,0,0.08)' }}>
         <div style={{ textAlign: 'center', marginBottom: 32 }}>
-          <Title level={3} style={{ margin: 0, color: '#1677ff' }}>iPaper System</Title>
-          <Typography.Text type="secondary">Hệ thống luồn văn bản điện tử</Typography.Text>
+          <Title level={3} style={{ margin: 0, color: '#E4002B' }}>iPaper System</Title>
+          <Typography.Text type="secondary">Hệ thống luồng văn bản điện tử</Typography.Text>
         </div>
 
         <Form layout="vertical" onFinish={onFinish} autoComplete="off">
           <Form.Item name="tenantSlug" rules={[{ required: true, message: 'Nhập mã tổ chức' }]}>
-            <Input prefix={<BankOutlined />} placeholder="Mã tổ chức (vd: hdbank)" size="large" />
+            <Input prefix={<BankOutlined />} placeholder="Mã tổ chức (vd: demo)" size="large" />
           </Form.Item>
 
           <Form.Item name="username" rules={[{ required: true, message: 'Nhập tên đăng nhập' }]}>

@@ -9,7 +9,7 @@ import { Template } from './templates/template.entity';
 
 /**
  * Seed dữ liệu demo. Chạy: npm run seed
- * Tài khoản demo (tenant "hdbank"):
+ * Tài khoản demo (tenant "demo"):
  *   - nhanvien / 123456A@  (người tạo hồ sơ)
  *   - truongphong / 123456A@  (người duyệt)
  */
@@ -27,14 +27,14 @@ async function seed() {
 
   // Tenant
   const tenant = await tenantRepo.save(
-    tenantRepo.create({ slug: 'hdbank', name: 'HDBank Demo', isActive: true }),
+    tenantRepo.create({ slug: 'demo', name: 'Văn phòng Demo', isActive: true }),
   );
 
   const pass = await bcrypt.hash('123456A@', 10);
 
   const staff = await userRepo.save(
     userRepo.create({
-      tenantId: tenant.id, username: 'nhanvien', email: 'nhanvien@hdbank.vn',
+      tenantId: tenant.id, username: 'nhanvien', email: 'nhanvien@ipaper.vn',
       password: pass, fullName: 'Nguyễn Văn Nhân', orgUnit: 'Phòng Kế toán',
       role: UserRole.STAFF, isDomainUser: false,
     }),
@@ -42,7 +42,7 @@ async function seed() {
 
   const manager = await userRepo.save(
     userRepo.create({
-      tenantId: tenant.id, username: 'truongphong', email: 'truongphong@hdbank.vn',
+      tenantId: tenant.id, username: 'truongphong', email: 'truongphong@ipaper.vn',
       password: pass, fullName: 'Trần Thị Trưởng', orgUnit: 'Phòng Kế toán',
       role: UserRole.STAFF, isDomainUser: false,
     }),
@@ -50,7 +50,7 @@ async function seed() {
 
   const admin = await userRepo.save(
     userRepo.create({
-      tenantId: tenant.id, username: 'admin', email: 'admin@hdbank.vn',
+      tenantId: tenant.id, username: 'admin', email: 'admin@ipaper.vn',
       password: pass, fullName: 'Quản trị viên', orgUnit: 'CNTT',
       role: UserRole.ADMIN, isDomainUser: false,
     }),
@@ -96,7 +96,7 @@ async function seed() {
   ]);
 
   console.log('\n✅ Seed thành công!');
-  console.log('Tenant: hdbank');
+  console.log('Tenant: demo');
   console.log('Tài khoản (mật khẩu: 123456A@):');
   console.log('  - nhanvien     (người tạo hồ sơ)');
   console.log('  - truongphong  (người duyệt — có hồ sơ chờ duyệt)');
