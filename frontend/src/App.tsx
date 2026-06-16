@@ -28,7 +28,16 @@ export default function App() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <ConfigProvider locale={viVN} theme={{ token: { colorPrimary: '#1677ff' } }}>
+      <ConfigProvider
+        locale={viVN}
+        theme={{
+          token: { colorPrimary: '#E4002B', colorLink: '#E4002B', borderRadius: 4 },
+          components: {
+            Menu: { itemSelectedBg: '#fff1f0', itemSelectedColor: '#E4002B' },
+            Layout: { siderBg: '#fff' },
+          },
+        }}
+      >
         <BrowserRouter>
           <Routes>
             <Route path="/login" element={<LoginPage />} />
