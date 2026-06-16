@@ -6,13 +6,20 @@ import { Approval, ApprovalAction } from './approval.entity';
 import { CreateDocumentDto } from './dto/create-document.dto';
 import { SearchDocumentDto } from './dto/search-document.dto';
 import { NotificationsService } from '../notifications/notifications.service';
+import { DocumentFile } from './document-file.entity';
+import { MinioService } from '../files/minio.service';
+import { ApprovalPdfService } from './approval-pdf.service';
+import { v4 as uuid } from 'uuid';
 
 @Injectable()
 export class DocumentsService {
   constructor(
     @InjectRepository(Document) private docRepo: Repository<Document>,
     @InjectRepository(Approval) private approvalRepo: Repository<Approval>,
+    @InjectRepository(DocumentFile) private fileRepo: Repository<DocumentFile>,
     private notifications: NotificationsService,
+    private minio: MinioService,
+    private approvalPdf: ApprovalPdfService,
   ) {}
 
   // Tạo nháp hoặc tạo mới
@@ -74,8 +81,12 @@ export class DocumentsService {
 
     switch (dto.box) {
       case 'inbox':
+        // Hồ sơ đến = đang giao cho tôi xử lý: chờ tôi duyệt (pending),
+        // hoặc đã duyệt/trả về đang ở tôi để điều phối tiếp (approved/returned)
         qb.andWhere('d.assignedToId = :userId', { userId })
-          .andWhere('d.status = :pending', { pending: DocumentStatus.PENDING });
+          .andWhere('d.status IN (:...inboxStatuses)', {
+            inboxStatuses: [DocumentStatus.PENDING, DocumentStatus.APPROVED, DocumentStatus.RETURNED],
+          });
         break;
       case 'outbox':
         // Hồ sơ đi = hồ sơ mà người dùng đã thao tác (gửi/duyệt/từ chối/trả về)
@@ -130,11 +141,11 @@ export class DocumentsService {
     };
 
     const [inbox, outbox, draft, related, approved, rejected, pending, total] = await Promise.all([
-      base().clone().andWhere('d.assignedToId = :userId AND d.status = :s', { userId, s: DocumentStatus.PENDING }).getCount(),
+      base().clone().andWhere('d.assignedToId = :userId AND d.status IN (:...st)', { userId, st: [DocumentStatus.PENDING, DocumentStatus.APPROVED, DocumentStatus.RETURNED] }).getCount(),
       base().clone().andWhere('EXISTS (SELECT 1 FROM approvals a WHERE a."documentId" = d.id AND a."actorId" = :userId)', { userId }).getCount(),
       base().clone().andWhere('d.createdById = :userId AND d.status = :d', { userId, d: DocumentStatus.DRAFT }).getCount(),
       base().clone().andWhere('d.ccUserIds @> :ccUser', { ccUser: JSON.stringify([userId]) }).getCount(),
-      base().clone().andWhere('d.status = :s', { s: DocumentStatus.APPROVED }).getCount(),
+      base().clone().andWhere('d.status IN (:...ap)', { ap: [DocumentStatus.APPROVED, DocumentStatus.COMPLETED] }).getCount(),
       base().clone().andWhere('d.status = :s', { s: DocumentStatus.REJECTED }).getCount(),
       base().clone().andWhere('d.status = :s', { s: DocumentStatus.PENDING }).getCount(),
       base().clone().getCount(),
@@ -154,19 +165,84 @@ export class DocumentsService {
     await this.logApproval(docId, userId, ApprovalAction.APPROVE, doc.currentStep, comment);
 
     if (nextAssigneeId) {
-      // Còn người duyệt tiếp theo
+      // Người duyệt chỉ định thẳng người duyệt kế tiếp
       doc.currentStep += 1;
       doc.assignedToId = nextAssigneeId;
       doc.status = DocumentStatus.PENDING;
       await this.docRepo.save(doc);
       await this.notifications.notify(nextAssigneeId, `Bạn có hồ sơ mới cần duyệt: "${doc.title}"`, doc.id);
     } else {
-      // Bước cuối → hoàn thành
+      // Duyệt xong cấp này → trả về người tạo để gửi tiếp cấp trên hoặc hoàn thành
       doc.status = DocumentStatus.APPROVED;
-      doc.assignedToId = null as any;
+      doc.assignedToId = doc.createdById;
       await this.docRepo.save(doc);
-      await this.notifications.notify(doc.createdById, `Hồ sơ "${doc.title}" đã được duyệt hoàn tất`, doc.id);
+      await this.notifications.notify(doc.createdById, `Hồ sơ "${doc.title}" đã được duyệt cấp ${doc.currentStep}. Mời gửi duyệt tiếp hoặc hoàn thành.`, doc.id);
     }
+    return doc;
+  }
+
+  // Người tạo gửi hồ sơ lên cấp duyệt tiếp theo (sau khi đã được duyệt 1 cấp)
+  async forward(tenantId: string, userId: string, docId: string, nextAssigneeId: string, comment?: string) {
+    const doc = await this.getOwned(tenantId, userId, docId);
+    if (![DocumentStatus.APPROVED, DocumentStatus.RETURNED, DocumentStatus.DRAFT].includes(doc.status)) {
+      throw new ForbiddenException('Chỉ gửi duyệt tiếp khi hồ sơ đang ở người tạo');
+    }
+    doc.currentStep += 1;
+    doc.assignedToId = nextAssigneeId;
+    doc.status = DocumentStatus.PENDING;
+    await this.docRepo.save(doc);
+    await this.logApproval(docId, userId, ApprovalAction.SUBMIT, doc.currentStep, comment);
+    await this.notifications.notify(nextAssigneeId, `Bạn có hồ sơ mới cần duyệt: "${doc.title}"`, doc.id);
+    return doc;
+  }
+
+  // Người tạo bấm Hoàn thành → kết thúc + sinh PDF lịch sử phê duyệt
+  async complete(tenantId: string, userId: string, docId: string) {
+    const doc = await this.getOwned(tenantId, userId, docId);
+    if (doc.status !== DocumentStatus.APPROVED) {
+      throw new ForbiddenException('Chỉ hoàn thành khi hồ sơ đã được duyệt');
+    }
+
+    // Lấy lịch sử phê duyệt
+    const approvals = await this.approvalRepo.find({
+      where: { documentId: docId },
+      relations: { actor: true },
+      order: { createdAt: 'ASC' },
+    });
+    const history = approvals.map((a) => ({
+      actorName: a.actor?.fullName || a.actor?.username || '',
+      email: a.actor?.email || '',
+      action: a.action,
+      step: a.step,
+      comment: a.comment,
+      at: a.createdAt,
+    }));
+
+    // Lấy PDF tài liệu phê duyệt gốc (nếu có) để nối lịch sử vào cuối
+    let basePdf: Buffer | undefined;
+    const baseFile = await this.fileRepo.findOne({
+      where: { documentId: docId },
+      order: { createdAt: 'DESC' },
+    });
+    if (baseFile && baseFile.mimetype === 'application/pdf') {
+      try { basePdf = await this.minio.getBuffer(baseFile.storageKey); } catch { /* bỏ qua */ }
+    }
+
+    // Sinh PDF + lưu MinIO + tạo bản ghi file
+    const pdfBuffer = await this.approvalPdf.build(doc, history, basePdf);
+    const storageKey = `${docId}/lich-su-phe-duyet-${uuid()}.pdf`;
+    await this.minio.upload(storageKey, pdfBuffer, 'application/pdf');
+    await this.fileRepo.save(this.fileRepo.create({
+      documentId: docId, uploadedById: userId,
+      filename: 'Lich-su-phe-duyet.pdf', mimetype: 'application/pdf',
+      size: pdfBuffer.length, storageKey, version: 1,
+      isApprovalDoc: false, note: 'PDF lịch sử phê duyệt (tự sinh khi hoàn thành)',
+    }));
+
+    doc.status = DocumentStatus.COMPLETED;
+    doc.assignedToId = null as any;
+    await this.docRepo.save(doc);
+    await this.logApproval(docId, userId, ApprovalAction.COMPLETE, doc.currentStep, 'Hoàn thành hồ sơ');
     return doc;
   }
 

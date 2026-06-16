@@ -44,6 +44,16 @@ export class MinioService implements OnModuleInit {
     return this.client.getObject(this.bucket, key);
   }
 
+  async getBuffer(key: string): Promise<Buffer> {
+    const stream = await this.client.getObject(this.bucket, key);
+    const chunks: Buffer[] = [];
+    return new Promise((resolve, reject) => {
+      stream.on('data', (c) => chunks.push(c));
+      stream.on('end', () => resolve(Buffer.concat(chunks)));
+      stream.on('error', reject);
+    });
+  }
+
   // Link tải tạm thời (mặc định 1 giờ)
   async presignedUrl(key: string, expirySeconds = 3600): Promise<string> {
     return this.client.presignedGetObject(this.bucket, key, expirySeconds);

@@ -36,6 +36,16 @@ export class DocumentsController {
     return this.service.return(req.user.tenantId, req.user.id, id, body.comment);
   }
 
+  @Post(':id/forward')
+  forward(@Request() req, @Param('id') id: string, @Body() body: { nextAssigneeId: string; comment?: string }) {
+    return this.service.forward(req.user.tenantId, req.user.id, id, body.nextAssigneeId, body.comment);
+  }
+
+  @Post(':id/complete')
+  complete(@Request() req, @Param('id') id: string) {
+    return this.service.complete(req.user.tenantId, req.user.id, id);
+  }
+
   @Get('statistics')
   statistics(@Request() req, @Query('fromDate') from?: string, @Query('toDate') to?: string) {
     return this.service.statistics(req.user.tenantId, req.user.id, from, to);

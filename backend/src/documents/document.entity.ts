@@ -10,10 +10,11 @@ import { Approval } from './approval.entity';
 
 export enum DocumentStatus {
   DRAFT = 'draft',
-  PENDING = 'pending',
-  APPROVED = 'approved',
+  PENDING = 'pending',       // đang chờ người được giao duyệt
+  APPROVED = 'approved',     // đã duyệt 1 cấp, trả về người tạo để điều phối tiếp
   REJECTED = 'rejected',
-  RETURNED = 'returned',
+  RETURNED = 'returned',     // trả về người tạo để bổ sung
+  COMPLETED = 'completed',   // người tạo bấm Hoàn thành — kết thúc quy trình
 }
 
 export enum DocumentPriority {

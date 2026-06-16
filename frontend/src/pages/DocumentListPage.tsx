@@ -15,11 +15,11 @@ const titles: Record<Box, string> = {
 
 const statusColors: Record<string, string> = {
   draft: 'default', pending: 'processing', approved: 'success',
-  rejected: 'error', returned: 'warning',
+  rejected: 'error', returned: 'warning', completed: 'green',
 };
 const statusLabels: Record<string, string> = {
-  draft: 'Nháp', pending: 'Chờ duyệt', approved: 'Đã duyệt',
-  rejected: 'Từ chối', returned: 'Trả về',
+  draft: 'Nháp', pending: 'Chờ duyệt', approved: 'Đã duyệt cấp này',
+  rejected: 'Từ chối', returned: 'Trả về', completed: 'Hoàn thành',
 };
 const priorityLabels: Record<string, string> = {
   low: 'Thấp', normal: 'Bình thường', high: 'Cao', urgent: 'Khẩn',

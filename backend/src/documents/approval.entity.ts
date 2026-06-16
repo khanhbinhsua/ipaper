@@ -11,6 +11,7 @@ export enum ApprovalAction {
   REJECT = 'reject',
   RETURN = 'return',
   SAVE_DRAFT = 'save_draft',
+  COMPLETE = 'complete',
 }
 
 @Entity('approvals')

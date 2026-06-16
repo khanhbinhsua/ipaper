@@ -6,29 +6,31 @@ import {
 import {
   CheckOutlined, CloseOutlined, RollbackOutlined, ArrowLeftOutlined,
   UploadOutlined, DownloadOutlined, DeleteOutlined, FileOutlined,
+  SendOutlined, CheckCircleOutlined,
 } from '@ant-design/icons';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import dayjs from 'dayjs';
 import { api } from '../lib/api';
 import { useAuthStore } from '../store/auth.store';
+import UserSelect from '../components/UserSelect';
 
 const { TextArea } = Input;
 
 const statusColors: Record<string, string> = {
   draft: 'default', pending: 'processing', approved: 'success',
-  rejected: 'error', returned: 'warning',
+  rejected: 'error', returned: 'warning', completed: 'green',
 };
 const statusLabels: Record<string, string> = {
-  draft: 'Nháp', pending: 'Chờ duyệt', approved: 'Đã duyệt',
-  rejected: 'Từ chối', returned: 'Trả về',
+  draft: 'Nháp', pending: 'Chờ duyệt', approved: 'Đã duyệt cấp này',
+  rejected: 'Từ chối', returned: 'Trả về', completed: 'Hoàn thành',
 };
 const priorityLabels: Record<string, string> = {
   low: 'Thấp', normal: 'Bình thường', high: 'Cao', urgent: 'Khẩn',
 };
 const actionLabels: Record<string, string> = {
   submit: 'đã gửi duyệt', approve: 'đã duyệt', reject: 'đã từ chối',
-  return: 'đã trả về', save_draft: 'đã lưu nháp',
+  return: 'đã trả về', save_draft: 'đã lưu nháp', complete: 'đã hoàn thành',
 };
 
 type ActionType = 'approve' | 'reject' | 'return';
@@ -39,6 +41,8 @@ export default function DocumentDetailPage() {
   const user = useAuthStore((s) => s.user);
   const [modal, setModal] = useState<ActionType | null>(null);
   const [comment, setComment] = useState('');
+  const [forwardOpen, setForwardOpen] = useState(false);
+  const [nextAssignee, setNextAssignee] = useState<string>();
 
   const { data: doc, isLoading, refetch } = useQuery({
     queryKey: ['document', id],
@@ -55,10 +59,27 @@ export default function DocumentDetailPage() {
     onError: (e: any) => message.error(e.response?.data?.message || 'Lỗi thao tác'),
   });
 
+  const forwardMutation = useMutation({
+    mutationFn: () => api.post(`/documents/${id}/forward`, { nextAssigneeId: nextAssignee, comment }),
+    onSuccess: () => {
+      message.success('Đã gửi duyệt tiếp');
+      setForwardOpen(false); setNextAssignee(undefined); setComment(''); refetch();
+    },
+    onError: (e: any) => message.error(e.response?.data?.message || 'Lỗi gửi duyệt'),
+  });
+
+  const completeMutation = useMutation({
+    mutationFn: () => api.post(`/documents/${id}/complete`),
+    onSuccess: () => { message.success('Đã hoàn thành — đã sinh PDF lịch sử phê duyệt'); refetch(); },
+    onError: (e: any) => message.error(e.response?.data?.message || 'Lỗi hoàn thành'),
+  });
+
   if (isLoading) return <Spin />;
   if (!doc) return <Empty description="Không tìm thấy hồ sơ" />;
 
   const canApprove = doc.assignedToId === user?.id && doc.status === 'pending';
+  // Người tạo điều phối: hồ sơ đã duyệt 1 cấp đang ở mình → gửi tiếp hoặc hoàn thành
+  const canRoute = doc.createdById === user?.id && doc.status === 'approved';
 
   const modalTitles: Record<ActionType, string> = {
     approve: 'Xác nhận Duyệt', reject: 'Xác nhận Từ chối', return: 'Xác nhận Trả về',
@@ -77,6 +98,14 @@ export default function DocumentDetailPage() {
             <Button icon={<RollbackOutlined />} onClick={() => setModal('return')}>Trả về</Button>
             <Button danger icon={<CloseOutlined />} onClick={() => setModal('reject')}>Từ chối</Button>
             <Button type="primary" icon={<CheckOutlined />} onClick={() => setModal('approve')}>Duyệt</Button>
+          </Space>
+        )}
+        {canRoute && (
+          <Space>
+            <Button type="primary" icon={<SendOutlined />} onClick={() => setForwardOpen(true)}>Gửi duyệt tiếp</Button>
+            <Button icon={<CheckCircleOutlined />} style={{ background: '#52c41a', color: '#fff', borderColor: '#52c41a' }}
+              loading={completeMutation.isPending}
+              onClick={() => completeMutation.mutate()}>Hoàn thành</Button>
           </Space>
         )}
       </div>
@@ -191,6 +220,20 @@ export default function DocumentDetailPage() {
           value={comment}
           onChange={(e) => setComment(e.target.value)}
         />
+      </Modal>
+
+      <Modal
+        title="Gửi duyệt tiếp (cấp trên)"
+        open={forwardOpen}
+        onOk={() => { if (!nextAssignee) { message.warning('Chọn người duyệt tiếp'); return; } forwardMutation.mutate(); }}
+        onCancel={() => { setForwardOpen(false); setNextAssignee(undefined); setComment(''); }}
+        confirmLoading={forwardMutation.isPending}
+        okText="Gửi duyệt" cancelText="Hủy"
+      >
+        <div style={{ marginBottom: 8 }}>Chọn người duyệt tiếp theo (vd: Giám đốc):</div>
+        <UserSelect value={nextAssignee} onChange={setNextAssignee} placeholder="Tìm người duyệt theo tên/email" />
+        <TextArea style={{ marginTop: 12 }} rows={3} placeholder="Ý kiến (tùy chọn)..."
+          value={comment} onChange={(e) => setComment(e.target.value)} />
       </Modal>
     </div>
   );
