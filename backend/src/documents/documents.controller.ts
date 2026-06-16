@@ -21,6 +21,21 @@ export class DocumentsController {
     return this.service.submit(req.user.tenantId, req.user.id, id);
   }
 
+  @Post(':id/approve')
+  approve(@Request() req, @Param('id') id: string, @Body() body: { comment?: string; nextAssigneeId?: string }) {
+    return this.service.approve(req.user.tenantId, req.user.id, id, body.comment, body.nextAssigneeId);
+  }
+
+  @Post(':id/reject')
+  reject(@Request() req, @Param('id') id: string, @Body() body: { comment?: string }) {
+    return this.service.reject(req.user.tenantId, req.user.id, id, body.comment);
+  }
+
+  @Post(':id/return')
+  returnDoc(@Request() req, @Param('id') id: string, @Body() body: { comment?: string }) {
+    return this.service.return(req.user.tenantId, req.user.id, id, body.comment);
+  }
+
   @Get('statistics')
   statistics(@Request() req, @Query('fromDate') from?: string, @Query('toDate') to?: string) {
     return this.service.statistics(req.user.tenantId, req.user.id, from, to);

@@ -8,6 +8,7 @@ import MainLayout from './components/MainLayout';
 import DashboardPage from './pages/DashboardPage';
 import CreateDocumentPage from './pages/CreateDocumentPage';
 import DocumentListPage from './pages/DocumentListPage';
+import DocumentDetailPage from './pages/DocumentDetailPage';
 import { useAuthStore } from './store/auth.store';
 
 const queryClient = new QueryClient();
@@ -32,6 +33,7 @@ export default function App() {
               <Route path="/related" element={<DocumentListPage box="related" />} />
               <Route path="/search" element={<DocumentListPage box="all" />} />
               <Route path="/create" element={<CreateDocumentPage />} />
+              <Route path="/documents/:id" element={<DocumentDetailPage />} />
             </Route>
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>

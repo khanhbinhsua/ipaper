@@ -81,7 +81,7 @@ export class DocumentsService {
           .andWhere('d.status = :draft', { draft: DocumentStatus.DRAFT });
         break;
       case 'related':
-        qb.andWhere(':userId = ANY(d.ccUserIds)', { userId });
+        qb.andWhere('d.ccUserIds @> :ccUser', { ccUser: JSON.stringify([userId]) });
         break;
       // 'all' — không filter thêm
     }
@@ -125,7 +125,7 @@ export class DocumentsService {
       base().clone().andWhere('d.assignedToId = :userId AND d.status = :s', { userId, s: DocumentStatus.PENDING }).getCount(),
       base().clone().andWhere('d.createdById = :userId AND d.status != :d', { userId, d: DocumentStatus.DRAFT }).getCount(),
       base().clone().andWhere('d.createdById = :userId AND d.status = :d', { userId, d: DocumentStatus.DRAFT }).getCount(),
-      base().clone().andWhere(':userId = ANY(d.ccUserIds)', { userId }).getCount(),
+      base().clone().andWhere('d.ccUserIds @> :ccUser', { ccUser: JSON.stringify([userId]) }).getCount(),
       base().clone().andWhere('d.status = :s', { s: DocumentStatus.APPROVED }).getCount(),
       base().clone().andWhere('d.status = :s', { s: DocumentStatus.REJECTED }).getCount(),
       base().clone().andWhere('d.status = :s', { s: DocumentStatus.PENDING }).getCount(),
@@ -138,10 +138,60 @@ export class DocumentsService {
     };
   }
 
+  // ===== WORKFLOW ACTIONS =====
+
+  // Duyệt — chuyển cho người duyệt kế tiếp, hoặc hoàn thành nếu là bước cuối
+  async approve(tenantId: string, userId: string, docId: string, comment?: string, nextAssigneeId?: string) {
+    const doc = await this.getAssigned(tenantId, userId, docId);
+    await this.logApproval(docId, userId, ApprovalAction.APPROVE, doc.currentStep, comment);
+
+    if (nextAssigneeId) {
+      // Còn người duyệt tiếp theo
+      doc.currentStep += 1;
+      doc.assignedToId = nextAssigneeId;
+      doc.status = DocumentStatus.PENDING;
+    } else {
+      // Bước cuối → hoàn thành
+      doc.status = DocumentStatus.APPROVED;
+      doc.assignedToId = null as any;
+    }
+    return this.docRepo.save(doc);
+  }
+
+  // Từ chối — kết thúc quy trình
+  async reject(tenantId: string, userId: string, docId: string, comment?: string) {
+    const doc = await this.getAssigned(tenantId, userId, docId);
+    doc.status = DocumentStatus.REJECTED;
+    doc.assignedToId = null as any;
+    await this.docRepo.save(doc);
+    await this.logApproval(docId, userId, ApprovalAction.REJECT, doc.currentStep, comment);
+    return doc;
+  }
+
+  // Trả về — trả lại người tạo (hoặc bước trước) để bổ sung
+  async return(tenantId: string, userId: string, docId: string, comment?: string) {
+    const doc = await this.getAssigned(tenantId, userId, docId);
+    doc.status = DocumentStatus.RETURNED;
+    doc.assignedToId = doc.createdById; // trả về người tạo
+    doc.currentStep = 0;
+    await this.docRepo.save(doc);
+    await this.logApproval(docId, userId, ApprovalAction.RETURN, doc.currentStep, comment);
+    return doc;
+  }
+
   private async getOwned(tenantId: string, userId: string, docId: string) {
     const doc = await this.docRepo.findOne({ where: { id: docId, tenantId } });
     if (!doc) throw new NotFoundException('Hồ sơ không tồn tại');
     if (doc.createdById !== userId) throw new ForbiddenException('Không có quyền');
+    return doc;
+  }
+
+  private async getAssigned(tenantId: string, userId: string, docId: string) {
+    const doc = await this.docRepo.findOne({ where: { id: docId, tenantId } });
+    if (!doc) throw new NotFoundException('Hồ sơ không tồn tại');
+    if (doc.assignedToId !== userId) {
+      throw new ForbiddenException('Bạn không phải người duyệt hồ sơ này');
+    }
     return doc;
   }
 
