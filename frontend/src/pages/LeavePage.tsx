@@ -6,6 +6,7 @@ import {
 import { useQuery, useMutation } from '@tanstack/react-query';
 import dayjs from 'dayjs';
 import { api } from '../lib/api';
+import UserSelect from '../components/UserSelect';
 
 const leaveTypes = [
   { value: 'annual', label: 'Phép năm' },
@@ -43,8 +44,8 @@ function CreateLeaveForm({ onDone }: { onDone: () => void }) {
         <Form.Item name="halfAm" valuePropName="checked" noStyle><Checkbox>Nghỉ buổi sáng (ngày đầu)</Checkbox></Form.Item>
         <Form.Item name="halfPm" valuePropName="checked" noStyle><Checkbox>Nghỉ buổi chiều (ngày cuối)</Checkbox></Form.Item>
       </Space>
-      <Form.Item name="approverId" label="Người duyệt (email/ID quản lý)" rules={[{ required: true }]} style={{ marginTop: 16 }}>
-        <Input placeholder="ID người duyệt" />
+      <Form.Item name="approverId" label="Người duyệt (cấp quản lý)" rules={[{ required: true }]} style={{ marginTop: 16 }}>
+        <UserSelect placeholder="Tìm quản lý theo tên/email" />
       </Form.Item>
       <Button type="primary" htmlType="submit" loading={mutation.isPending}>Gửi duyệt</Button>
     </Form>

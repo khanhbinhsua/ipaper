@@ -10,6 +10,8 @@ import CreateDocumentPage from './pages/CreateDocumentPage';
 import DocumentListPage from './pages/DocumentListPage';
 import DocumentDetailPage from './pages/DocumentDetailPage';
 import LeavePage from './pages/LeavePage';
+import ProfilePage from './pages/ProfilePage';
+import ChangePasswordPage from './pages/ChangePasswordPage';
 import { useAuthStore } from './store/auth.store';
 
 const queryClient = new QueryClient();
@@ -39,6 +41,8 @@ export default function App() {
               <Route path="/create" element={<CreateDocumentPage />} />
               <Route path="/documents/:id" element={<DocumentDetailPage />} />
               <Route path="/leave" element={<LeavePage />} />
+              <Route path="/profile" element={<ProfilePage />} />
+              <Route path="/change-password" element={<ChangePasswordPage />} />
             </Route>
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>

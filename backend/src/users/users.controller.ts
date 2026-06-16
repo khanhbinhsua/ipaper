@@ -1,4 +1,4 @@
-import { Controller, Get, Patch, Body, UseGuards, Request } from '@nestjs/common';
+import { Controller, Get, Patch, Body, Query, UseGuards, Request } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { UsersService } from './users.service';
 
@@ -15,6 +15,11 @@ export class UsersController {
   @Patch('me')
   updateMe(@Request() req, @Body() body: { notifyWeb?: boolean; notifyEmail?: boolean; avatar?: string }) {
     return this.usersService.updateProfile(req.user.id, body);
+  }
+
+  @Get('search')
+  search(@Request() req, @Query('q') q?: string) {
+    return this.usersService.search(req.user.tenantId, q);
   }
 
   @Get()

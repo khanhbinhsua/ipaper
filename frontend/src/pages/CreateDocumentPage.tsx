@@ -3,6 +3,7 @@ import { SaveOutlined, SendOutlined, RollbackOutlined } from '@ant-design/icons'
 import { useNavigate } from 'react-router-dom';
 import { useMutation } from '@tanstack/react-query';
 import { api } from '../lib/api';
+import UserSelect from '../components/UserSelect';
 
 const { TextArea } = Input;
 
@@ -80,7 +81,12 @@ export default function CreateDocumentPage() {
             </Col>
             <Col span={12}>
               <Form.Item name="assignedToId" label="Chuyển tới (người duyệt)">
-                <Input placeholder="Email người duyệt" />
+                <UserSelect placeholder="Tìm người duyệt theo tên/email" />
+              </Form.Item>
+            </Col>
+            <Col span={12}>
+              <Form.Item name="ccUserIds" label="Người liên quan (CC)">
+                <UserSelect mode="multiple" placeholder="Chọn người được xem hồ sơ" />
               </Form.Item>
             </Col>
             <Col span={24}>
