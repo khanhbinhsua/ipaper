@@ -5,12 +5,14 @@ import { Document, DocumentStatus } from './document.entity';
 import { Approval, ApprovalAction } from './approval.entity';
 import { CreateDocumentDto } from './dto/create-document.dto';
 import { SearchDocumentDto } from './dto/search-document.dto';
+import { NotificationsService } from '../notifications/notifications.service';
 
 @Injectable()
 export class DocumentsService {
   constructor(
     @InjectRepository(Document) private docRepo: Repository<Document>,
     @InjectRepository(Approval) private approvalRepo: Repository<Approval>,
+    private notifications: NotificationsService,
   ) {}
 
   // Tạo nháp hoặc tạo mới
@@ -32,6 +34,9 @@ export class DocumentsService {
     doc.currentStep = 1;
     await this.docRepo.save(doc);
     await this.logApproval(docId, userId, ApprovalAction.SUBMIT, doc.currentStep);
+    if (doc.assignedToId) {
+      await this.notifications.notify(doc.assignedToId, `Bạn có hồ sơ mới cần duyệt: "${doc.title}"`, doc.id);
+    }
     return doc;
   }
 
@@ -150,12 +155,16 @@ export class DocumentsService {
       doc.currentStep += 1;
       doc.assignedToId = nextAssigneeId;
       doc.status = DocumentStatus.PENDING;
+      await this.docRepo.save(doc);
+      await this.notifications.notify(nextAssigneeId, `Bạn có hồ sơ mới cần duyệt: "${doc.title}"`, doc.id);
     } else {
       // Bước cuối → hoàn thành
       doc.status = DocumentStatus.APPROVED;
       doc.assignedToId = null as any;
+      await this.docRepo.save(doc);
+      await this.notifications.notify(doc.createdById, `Hồ sơ "${doc.title}" đã được duyệt hoàn tất`, doc.id);
     }
-    return this.docRepo.save(doc);
+    return doc;
   }
 
   // Từ chối — kết thúc quy trình
@@ -165,6 +174,7 @@ export class DocumentsService {
     doc.assignedToId = null as any;
     await this.docRepo.save(doc);
     await this.logApproval(docId, userId, ApprovalAction.REJECT, doc.currentStep, comment);
+    await this.notifications.notify(doc.createdById, `Hồ sơ "${doc.title}" đã bị từ chối`, doc.id);
     return doc;
   }
 
@@ -176,6 +186,7 @@ export class DocumentsService {
     doc.currentStep = 0;
     await this.docRepo.save(doc);
     await this.logApproval(docId, userId, ApprovalAction.RETURN, doc.currentStep, comment);
+    await this.notifications.notify(doc.createdById, `Hồ sơ "${doc.title}" đã được trả về để bổ sung`, doc.id);
     return doc;
   }
 

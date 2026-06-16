@@ -5,9 +5,13 @@ import { DocumentFile } from './document-file.entity';
 import { Approval } from './approval.entity';
 import { DocumentsService } from './documents.service';
 import { DocumentsController } from './documents.controller';
+import { NotificationsModule } from '../notifications/notifications.module';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Document, DocumentFile, Approval])],
+  imports: [
+    TypeOrmModule.forFeature([Document, DocumentFile, Approval]),
+    NotificationsModule,
+  ],
   controllers: [DocumentsController],
   providers: [DocumentsService],
   exports: [TypeOrmModule, DocumentsService],

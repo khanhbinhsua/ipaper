@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react';
+import { type ReactNode, useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ConfigProvider } from 'antd';
@@ -20,6 +20,9 @@ function PrivateRoute({ children }: { children: ReactNode }) {
 }
 
 export default function App() {
+  const fetchMe = useAuthStore((s) => s.fetchMe);
+  useEffect(() => { fetchMe(); }, [fetchMe]);
+
   return (
     <QueryClientProvider client={queryClient}>
       <ConfigProvider locale={viVN} theme={{ token: { colorPrimary: '#1677ff' } }}>

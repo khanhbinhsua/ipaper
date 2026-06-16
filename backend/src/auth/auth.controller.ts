@@ -18,7 +18,8 @@ export class AuthController {
   @UseGuards(JwtAuthGuard)
   @Get('me')
   getMe(@Request() req) {
-    return req.user;
+    const { password, ...safe } = req.user;
+    return safe;
   }
 
   @UseGuards(JwtAuthGuard)

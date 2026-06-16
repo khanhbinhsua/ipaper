@@ -21,6 +21,7 @@ interface AuthState {
   login: (username: string, password: string, tenantSlug: string) => Promise<void>;
   logout: () => void;
   updateUser: (data: Partial<User>) => void;
+  fetchMe: () => Promise<void>;
 }
 
 export const useAuthStore = create<AuthState>((set) => ({
@@ -40,4 +41,17 @@ export const useAuthStore = create<AuthState>((set) => ({
 
   updateUser: (data) =>
     set((state) => ({ user: state.user ? { ...state.user, ...data } : null })),
+
+  // Khôi phục user từ token sau khi reload trang
+  fetchMe: async () => {
+    const token = localStorage.getItem('token');
+    if (!token) return;
+    try {
+      const { data } = await api.get('/auth/me');
+      set({ user: { ...data, id: data.id ?? data.sub }, token });
+    } catch {
+      localStorage.removeItem('token');
+      set({ user: null, token: null });
+    }
+  },
 }));
