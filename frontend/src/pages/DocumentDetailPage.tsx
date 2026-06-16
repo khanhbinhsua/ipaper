@@ -1,10 +1,11 @@
 import { useState } from 'react';
 import {
   Card, Descriptions, Tag, Button, Space, Timeline, Modal, Input,
-  message, Spin, Tabs, Empty,
+  message, Spin, Tabs, Empty, Upload, List,
 } from 'antd';
 import {
   CheckOutlined, CloseOutlined, RollbackOutlined, ArrowLeftOutlined,
+  UploadOutlined, DownloadOutlined, DeleteOutlined, FileOutlined,
 } from '@ant-design/icons';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation } from '@tanstack/react-query';
@@ -124,11 +125,52 @@ export default function DocumentDetailPage() {
             },
             {
               key: 'files', label: 'Tài liệu bổ sung',
-              children: doc.attachments?.length ? (
-                doc.attachments.map((f: any) => (
-                  <div key={f.id}>{f.filename} ({(f.size / 1048576).toFixed(2)} MB)</div>
-                ))
-              ) : <Empty description="Chưa có tài liệu đính kèm" />,
+              children: (
+                <div>
+                  <Upload
+                    showUploadList={false}
+                    customRequest={async ({ file, onSuccess, onError }) => {
+                      const fd = new FormData();
+                      fd.append('file', file as File);
+                      try {
+                        await api.post(`/files/upload/${id}`, fd);
+                        message.success('Đã tải lên');
+                        refetch();
+                        onSuccess?.({});
+                      } catch (e) {
+                        message.error('Tải lên thất bại');
+                        onError?.(e as Error);
+                      }
+                    }}
+                  >
+                    <Button icon={<UploadOutlined />} style={{ marginBottom: 16 }}>Đính kèm tài liệu</Button>
+                  </Upload>
+                  {doc.attachments?.length ? (
+                    <List
+                      dataSource={doc.attachments}
+                      renderItem={(f: any) => (
+                        <List.Item
+                          actions={[
+                            <Button key="dl" size="small" icon={<DownloadOutlined />}
+                              onClick={async () => {
+                                const { data } = await api.get(`/files/${f.id}/url`);
+                                window.open(data.url, '_blank');
+                              }}>Tải</Button>,
+                            <Button key="rm" size="small" danger icon={<DeleteOutlined />}
+                              onClick={async () => { await api.delete(`/files/${f.id}`); refetch(); }}>Xóa</Button>,
+                          ]}
+                        >
+                          <List.Item.Meta
+                            avatar={<FileOutlined style={{ fontSize: 20 }} />}
+                            title={f.filename}
+                            description={`${(f.size / 1048576).toFixed(2)} MB · ${f.mimetype}`}
+                          />
+                        </List.Item>
+                      )}
+                    />
+                  ) : <Empty description="Chưa có tài liệu đính kèm" />}
+                </div>
+              ),
             },
           ]}
         />
