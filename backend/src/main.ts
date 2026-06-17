@@ -1,3 +1,7 @@
+// Ép Node chạy ở UTC để khớp với Postgres (container UTC) — tránh lệch giờ
+// khi đọc/ghi cột timestamp. Frontend sẽ tự đổi sang giờ địa phương (GMT+7).
+process.env.TZ = 'UTC';
+
 import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
 import { AppModule } from './app.module';
