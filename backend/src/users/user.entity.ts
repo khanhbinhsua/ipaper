@@ -5,8 +5,10 @@ import {
 import { Tenant } from '../tenants/tenant.entity';
 
 export enum UserRole {
-  ADMIN = 'admin',
-  STAFF = 'staff',
+  ADMIN = 'admin',       // quản trị hệ thống
+  STAFF = 'staff',       // nhân viên
+  MANAGER = 'manager',   // trưởng phòng
+  DIRECTOR = 'director', // ban giám đốc
 }
 
 @Entity('users')

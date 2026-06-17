@@ -4,6 +4,7 @@ import {
   DashboardOutlined, InboxOutlined, SendOutlined, FileTextOutlined,
   TeamOutlined, SearchOutlined, PlusCircleOutlined, FormOutlined,
   CalendarOutlined, BellOutlined, UserOutlined, LogoutOutlined, KeyOutlined,
+  SettingOutlined,
 } from '@ant-design/icons';
 import { useNavigate, useLocation, Outlet } from 'react-router-dom';
 import dayjs from 'dayjs';
@@ -23,6 +24,9 @@ const menuItems = [
   { key: '/templates', icon: <FormOutlined />, label: 'Tạo yêu cầu theo mẫu' },
   { key: '/leave', icon: <CalendarOutlined />, label: 'Đăng ký nghỉ' },
 ];
+
+// Mục chỉ dành cho admin
+const adminMenuItem = { key: '/admin/users', icon: <SettingOutlined />, label: 'Quản trị người dùng' };
 
 export default function MainLayout() {
   const navigate = useNavigate();
@@ -88,7 +92,7 @@ export default function MainLayout() {
           <Menu
             mode="inline"
             selectedKeys={[location.pathname]}
-            items={menuItems}
+            items={user?.role === 'admin' ? [...menuItems, adminMenuItem] : menuItems}
             onClick={({ key }) => navigate(key)}
             style={{ borderRight: 0 }}
           />
