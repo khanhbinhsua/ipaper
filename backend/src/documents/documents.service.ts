@@ -27,11 +27,21 @@ export class DocumentsService {
     const doc = this.docRepo.create({
       ...dto,
       tenantId,
+      code: this.genCode(),
       createdById: userId,
       status: DocumentStatus.DRAFT,
       ccUserIds: dto.ccUserIds ?? [],
     });
     return this.docRepo.save(doc);
+  }
+
+  // Sinh mã hồ sơ: I + yymmdd + 7 số (vd I2606151312110)
+  private genCode(): string {
+    const d = new Date();
+    const p = (n: number) => String(n).padStart(2, '0');
+    const ymd = `${String(d.getFullYear()).slice(2)}${p(d.getMonth() + 1)}${p(d.getDate())}`;
+    const rand = String(Math.floor(Math.random() * 9000000) + 1000000);
+    return `I${ymd}${rand}`;
   }
 
   // Gửi duyệt — chuyển từ nháp sang pending
@@ -211,6 +221,8 @@ export class DocumentsService {
     });
     const history = approvals.map((a) => ({
       actorName: a.actor?.fullName || a.actor?.username || '',
+      code: a.actor?.username || '',
+      orgUnit: a.actor?.orgUnit || '',
       email: a.actor?.email || '',
       action: a.action,
       step: a.step,
@@ -218,16 +230,13 @@ export class DocumentsService {
       at: a.createdAt,
     }));
 
-    // Lấy PDF tài liệu phê duyệt gốc (nếu có) để nối lịch sử vào cuối
     // Chọn đúng PDF người gửi tải lên để nối thêm trang lịch sử (giữ nguyên mọi trang gốc).
     // Ưu tiên: tài liệu phê duyệt chính (isApprovalDoc), nếu không có thì PDF tải lên sớm nhất.
     const pdfFiles = await this.fileRepo.find({
       where: { documentId: docId, mimetype: 'application/pdf' },
       order: { createdAt: 'ASC' },
     });
-    // Bỏ qua các file lịch sử đã sinh trước đó (nếu hoàn thành lại)
-    const candidates = pdfFiles.filter((f) => !f.note?.includes('lịch sử'));
-    const baseFile = candidates.find((f) => f.isApprovalDoc) || candidates[0];
+    const baseFile = pdfFiles.find((f) => f.isApprovalDoc) || pdfFiles[0];
 
     let basePdf: Buffer | undefined;
     if (baseFile) {
@@ -236,17 +245,27 @@ export class DocumentsService {
 
     // Nối trang lịch sử vào cuối PDF gốc (hoặc tạo PDF mới nếu không có file đính kèm PDF)
     const pdfBuffer = await this.approvalPdf.build(doc, history, basePdf);
-    const outName = baseFile
-      ? baseFile.filename.replace(/\.pdf$/i, '') + ' (kèm lịch sử phê duyệt).pdf'
-      : 'Tai-lieu-phe-duyet.pdf';
     const storageKey = `${docId}/final-${uuid()}.pdf`;
     await this.minio.upload(storageKey, pdfBuffer, 'application/pdf');
-    await this.fileRepo.save(this.fileRepo.create({
-      documentId: docId, uploadedById: userId,
-      filename: outName, mimetype: 'application/pdf',
-      size: pdfBuffer.length, storageKey, version: 1,
-      isApprovalDoc: true, note: 'Tài liệu cuối (giữ nguyên trang gốc + trang lịch sử phê duyệt)',
-    }));
+
+    if (baseFile) {
+      // Chỉ giữ 1 file: cập nhật chính file gốc trỏ sang bản đã nối lịch sử, xóa object cũ
+      const oldKey = baseFile.storageKey;
+      baseFile.storageKey = storageKey;
+      baseFile.size = pdfBuffer.length;
+      baseFile.isApprovalDoc = true;
+      baseFile.note = 'Đã nối trang lịch sử phê duyệt';
+      await this.fileRepo.save(baseFile);
+      if (oldKey !== storageKey) { try { await this.minio.remove(oldKey); } catch { /* bỏ qua */ } }
+    } else {
+      // Không có PDF đính kèm → tạo 1 file lịch sử
+      await this.fileRepo.save(this.fileRepo.create({
+        documentId: docId, uploadedById: userId,
+        filename: 'Lich-su-phe-duyet.pdf', mimetype: 'application/pdf',
+        size: pdfBuffer.length, storageKey, version: 1,
+        isApprovalDoc: true, note: 'PDF lịch sử phê duyệt',
+      }));
+    }
 
     doc.status = DocumentStatus.COMPLETED;
     doc.assignedToId = null as any;

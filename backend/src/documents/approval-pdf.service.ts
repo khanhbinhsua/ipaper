@@ -1,20 +1,27 @@
 import { Injectable } from '@nestjs/common';
-import { PDFDocument, StandardFonts, rgb } from 'pdf-lib';
+import { PDFDocument, PDFFont, PDFPage, rgb } from 'pdf-lib';
+import fontkit from '@pdf-lib/fontkit';
+import * as fs from 'fs';
+import * as path from 'path';
 import { Document } from './document.entity';
-import { Approval, ApprovalAction } from './approval.entity';
+import { ApprovalAction } from './approval.entity';
 
 const ACTION_LABEL: Record<string, string> = {
-  submit: 'Gui duyet',
-  approve: 'Da duyet',
-  reject: 'Tu choi',
-  return: 'Tra ve',
-  save_draft: 'Luu nhap',
-  forward: 'Gui duyet tiep',
-  complete: 'Hoan thanh',
+  submit: 'Gửi duyệt',
+  approve: 'Duyệt',
+  reject: 'Từ chối',
+  return: 'Trả về',
+  save_draft: 'Lưu nháp',
+  complete: 'Hoàn thành',
 };
 
+const RED = rgb(0.792, 0.0, 0.118); // #CA001E ~ đỏ HDBank
+const BORDER = rgb(0.8, 0.8, 0.8);
+
 interface HistoryRow {
-  actorName: string;
+  actorName: string;   // vd: Trần Thị Thanh Tuyền
+  code?: string;       // vd: HD000676 (mã NV / username)
+  orgUnit?: string;    // vd: PM&PR
   email: string;
   action: ApprovalAction | string;
   step: number;
@@ -22,72 +29,163 @@ interface HistoryRow {
   at: Date;
 }
 
+// Bố cục cột bảng (tổng ~ 495pt trong khổ A4 lề 50)
+const COLS = [
+  { key: '#', title: '#', w: 30 },
+  { key: 'user', title: 'Người dùng', w: 150 },
+  { key: 'step', title: 'Bước', w: 70 },
+  { key: 'date', title: 'Ngày', w: 85 },
+  { key: 'comment', title: 'Bình luận', w: 160 },
+];
+
 @Injectable()
 export class ApprovalPdfService {
+  private fontReg?: Uint8Array;
+  private fontBold?: Uint8Array;
+
+  private loadFonts() {
+    if (this.fontReg && this.fontBold) return;
+    const dir = path.join(process.cwd(), 'assets', 'fonts');
+    this.fontReg = fs.readFileSync(path.join(dir, 'arial.ttf'));
+    this.fontBold = fs.readFileSync(path.join(dir, 'arialbd.ttf'));
+  }
+
   /**
-   * Tạo (hoặc nối thêm vào) PDF lịch sử phê duyệt.
-   * - basePdf: buffer PDF tài liệu phê duyệt gốc (nếu có) để nối lịch sử vào cuối.
-   * - Nếu không có/không phải PDF hợp lệ → tạo PDF mới.
-   * Lưu ý: dùng font chuẩn (WinAnsi) nên text bỏ dấu tiếng Việt để tránh lỗi glyph.
+   * Nối 1 trang Lịch sử phê duyệt (định dạng bảng, tiếng Việt có dấu) vào cuối PDF gốc.
+   * Nếu không có basePdf → tạo PDF mới chỉ gồm trang lịch sử.
    */
   async build(doc: Document, history: HistoryRow[], basePdf?: Buffer): Promise<Buffer> {
+    this.loadFonts();
+
     let pdf: PDFDocument;
     try {
       pdf = basePdf ? await PDFDocument.load(basePdf) : await PDFDocument.create();
     } catch {
       pdf = await PDFDocument.create();
     }
+    pdf.registerFontkit(fontkit);
+    const font = await pdf.embedFont(this.fontReg!, { subset: true });
+    const bold = await pdf.embedFont(this.fontBold!, { subset: true });
 
-    const font = await pdf.embedFont(StandardFonts.Helvetica);
-    const fontBold = await pdf.embedFont(StandardFonts.HelveticaBold);
+    const A4: [number, number] = [595, 842];
+    const margin = 50;
+    let page = pdf.addPage(A4);
+    let y = A4[1] - 50;
 
-    let page = pdf.addPage([595, 842]); // A4
-    const { width, height } = page.getSize();
-    let y = height - 50;
-    const left = 50;
+    const newPage = () => { page = pdf.addPage(A4); y = A4[1] - 50; };
 
-    const line = (text: string, opts: { size?: number; bold?: boolean; color?: any } = {}) => {
-      const size = opts.size ?? 11;
-      if (y < 60) { page = pdf.addPage([595, 842]); y = height - 50; }
-      page.drawText(text, { x: left, y, size, font: opts.bold ? fontBold : font, color: opts.color ?? rgb(0.1, 0.1, 0.1) });
-      y -= size + 8;
+    // Tiêu đề đỏ căn giữa
+    const title = 'LỊCH SỬ PHÊ DUYỆT';
+    const tSize = 18;
+    const tWidth = bold.widthOfTextAtSize(title, tSize);
+    page.drawText(title, { x: (A4[0] - tWidth) / 2, y, size: tSize, font: bold, color: RED });
+    y -= 34;
+
+    // Dòng mã + tiêu đề hồ sơ (bọc dòng)
+    const headerText = `${doc.code ? doc.code + ' - ' : ''}${doc.title}`;
+    y = this.drawWrapped(page, headerText, margin, y, A4[0] - margin * 2, font, 11, rgb(0.1, 0.1, 0.1), 15, newPage, () => page, () => y, (ny) => { y = ny; });
+    y -= 16;
+
+    // ===== Bảng =====
+    const tableX = margin;
+    const lineH = 14;
+    const padX = 5;
+    const padY = 5;
+
+    const drawHeaderRow = () => {
+      const h = 24;
+      let x = tableX;
+      page.drawRectangle({ x: tableX, y: y - h, width: COLS.reduce((s, c) => s + c.w, 0), height: h, color: RED });
+      for (const c of COLS) {
+        const tw = bold.widthOfTextAtSize(c.title, 10);
+        page.drawText(c.title, { x: x + (c.w - tw) / 2, y: y - h + 8, size: 10, font: bold, color: rgb(1, 1, 1) });
+        x += c.w;
+      }
+      y -= h;
     };
 
-    // Tiêu đề
-    page.drawRectangle({ x: 0, y: height - 30, width, height: 30, color: rgb(0.894, 0, 0.169) });
-    page.drawText('LICH SU PHE DUYET HO SO', { x: left, y: height - 22, size: 14, font: fontBold, color: rgb(1, 1, 1) });
-    y = height - 60;
-
-    line(`Tieu de: ${strip(doc.title)}`, { bold: true, size: 12 });
-    line(`Loai yeu cau: ${strip(doc.docType || '-')}`);
-    line(`Bo phan: ${strip(doc.orgUnit || '-')}`);
-    line(`Trang thai: HOAN THANH`);
-    line(`Ngay xuat: ${fmt(new Date())}`);
-    y -= 8;
-    line('CAC BUOC PHE DUYET:', { bold: true, size: 12, color: rgb(0.894, 0, 0.169) });
-    y -= 4;
+    drawHeaderRow();
 
     history.forEach((h, i) => {
-      line(`${i + 1}. [${ACTION_LABEL[h.action] || h.action}] ${strip(h.actorName)} (${h.email}) - Buoc ${h.step}`, { bold: true });
-      line(`   Thoi gian: ${fmt(h.at)}`);
-      if (h.comment) line(`   Y kien: ${strip(h.comment)}`);
-      y -= 4;
+      const userText = [h.code, (h.actorName || '').toUpperCase()].filter(Boolean).join(' ') + (h.orgUnit ? ` - ${h.orgUnit}` : '');
+      const cells: Record<string, string> = {
+        '#': String(i + 1),
+        user: userText,
+        step: ACTION_LABEL[h.action] || String(h.action),
+        date: this.fmt(h.at),
+        comment: h.comment || '',
+      };
+
+      // Tính số dòng wrap cho mỗi cột để xác định chiều cao hàng
+      const wrapped: Record<string, string[]> = {};
+      let maxLines = 1;
+      for (const c of COLS) {
+        const lines = this.wrapText(cells[c.key], c.w - padX * 2, font, 9);
+        wrapped[c.key] = lines;
+        maxLines = Math.max(maxLines, lines.length);
+      }
+      const rowH = maxLines * lineH + padY * 2;
+
+      if (y - rowH < 50) { newPage(); drawHeaderRow(); }
+
+      // Vẽ ô + viền + chữ
+      let x = tableX;
+      for (const c of COLS) {
+        page.drawRectangle({ x, y: y - rowH, width: c.w, height: rowH, borderColor: BORDER, borderWidth: 0.5 });
+        const lines = wrapped[c.key];
+        lines.forEach((ln, li) => {
+          const centered = c.key === '#' || c.key === 'step';
+          const tw = font.widthOfTextAtSize(ln, 9);
+          const tx = centered ? x + (c.w - tw) / 2 : x + padX;
+          page.drawText(ln, { x: tx, y: y - padY - (li + 1) * lineH + 4, size: 9, font, color: rgb(0.15, 0.15, 0.15) });
+        });
+        x += c.w;
+      }
+      y -= rowH;
     });
 
     const bytes = await pdf.save();
     return Buffer.from(bytes);
   }
-}
 
-// Bỏ dấu tiếng Việt để in bằng font chuẩn
-function strip(s: string): string {
-  return (s || '')
-    .normalize('NFD').replace(/[̀-ͯ]/g, '')
-    .replace(/đ/g, 'd').replace(/Đ/g, 'D');
-}
+  // Bọc dòng theo bề rộng
+  private wrapText(text: string, maxW: number, font: PDFFont, size: number): string[] {
+    if (!text) return [''];
+    text = text.normalize('NFC'); // chuẩn hóa dấu tiếng Việt liền (Arial có glyph NFC)
+    const words = text.split(/\s+/);
+    const lines: string[] = [];
+    let cur = '';
+    for (const w of words) {
+      const test = cur ? cur + ' ' + w : w;
+      if (font.widthOfTextAtSize(test, size) > maxW && cur) {
+        lines.push(cur);
+        cur = w;
+      } else {
+        cur = test;
+      }
+    }
+    if (cur) lines.push(cur);
+    return lines.length ? lines : [''];
+  }
 
-function fmt(d: Date): string {
-  const x = new Date(d);
-  const p = (n: number) => String(n).padStart(2, '0');
-  return `${p(x.getDate())}/${p(x.getMonth() + 1)}/${x.getFullYear()} ${p(x.getHours())}:${p(x.getMinutes())}:${p(x.getSeconds())}`;
+  // Vẽ đoạn text dài có bọc dòng (cho dòng tiêu đề hồ sơ)
+  private drawWrapped(
+    page: PDFPage, text: string, x: number, startY: number, maxW: number,
+    font: PDFFont, size: number, color: any, lineH: number,
+    _newPage: () => void, _getPage: () => PDFPage, _getY: () => number, _setY: (n: number) => void,
+  ): number {
+    const lines = this.wrapText(text, maxW, font, size);
+    let yy = startY;
+    for (const ln of lines) {
+      page.drawText(ln, { x, y: yy, size, font, color });
+      yy -= lineH;
+    }
+    return yy;
+  }
+
+  private fmt(d: Date): string {
+    const x = new Date(d);
+    const p = (n: number) => String(n).padStart(2, '0');
+    return `${p(x.getDate())}-${p(x.getMonth() + 1)}-${x.getFullYear()} ${p(x.getHours())}:${p(x.getMinutes())}:${p(x.getSeconds())}`;
+  }
 }

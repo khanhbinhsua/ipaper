@@ -35,6 +35,9 @@ export class Document {
   @Column()
   tenantId: string;
 
+  @Column({ nullable: true })
+  code: string; // mã hồ sơ, vd I2606151312110
+
   @Column()
   title: string;
 
