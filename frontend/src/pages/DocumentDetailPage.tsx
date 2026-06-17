@@ -6,7 +6,7 @@ import {
 import {
   CheckOutlined, CloseOutlined, RollbackOutlined, ArrowLeftOutlined,
   UploadOutlined, DownloadOutlined, DeleteOutlined, FileOutlined,
-  SendOutlined, CheckCircleOutlined,
+  SendOutlined, CheckCircleOutlined, EyeOutlined,
 } from '@ant-design/icons';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation } from '@tanstack/react-query';
@@ -43,6 +43,7 @@ export default function DocumentDetailPage() {
   const [comment, setComment] = useState('');
   const [forwardOpen, setForwardOpen] = useState(false);
   const [nextAssignee, setNextAssignee] = useState<string>();
+  const [viewer, setViewer] = useState<{ url: string; name: string } | null>(null);
 
   const { data: doc, isLoading, refetch } = useQuery({
     queryKey: ['document', id],
@@ -185,6 +186,13 @@ export default function DocumentDetailPage() {
                       renderItem={(f: any) => (
                         <List.Item
                           actions={[
+                            ...(f.mimetype === 'application/pdf' ? [
+                              <Button key="view" size="small" type="link" icon={<EyeOutlined />}
+                                onClick={async () => {
+                                  const { data } = await api.get(`/files/${f.id}/url`, { params: { inline: true } });
+                                  setViewer({ url: data.url, name: f.filename });
+                                }}>Xem</Button>,
+                            ] : []),
                             <Button key="dl" size="small" icon={<DownloadOutlined />}
                               onClick={async () => {
                                 const { data } = await api.get(`/files/${f.id}/url`);
@@ -239,6 +247,21 @@ export default function DocumentDetailPage() {
         <UserSelect value={nextAssignee} onChange={setNextAssignee} placeholder="Tìm người duyệt theo tên/email" />
         <TextArea style={{ marginTop: 12 }} rows={3} placeholder="Ý kiến (tùy chọn)..."
           value={comment} onChange={(e) => setComment(e.target.value)} />
+      </Modal>
+
+      {/* Xem PDF trực tiếp trong app */}
+      <Modal
+        title={viewer?.name}
+        open={!!viewer}
+        onCancel={() => setViewer(null)}
+        footer={null}
+        width="90%"
+        style={{ top: 20 }}
+        styles={{ body: { height: '82vh', padding: 0 } }}
+      >
+        {viewer && (
+          <iframe src={viewer.url} title={viewer.name} style={{ width: '100%', height: '100%', border: 'none' }} />
+        )}
       </Modal>
     </div>
   );

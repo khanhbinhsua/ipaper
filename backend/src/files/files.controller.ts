@@ -36,8 +36,8 @@ export class FilesController {
   }
 
   @Get(':fileId/url')
-  getUrl(@Param('fileId') fileId: string) {
-    return this.service.getDownloadUrl(fileId);
+  getUrl(@Param('fileId') fileId: string, @Query('inline') inline?: string) {
+    return this.service.getDownloadUrl(fileId, inline === 'true');
   }
 
   @Delete(':fileId')

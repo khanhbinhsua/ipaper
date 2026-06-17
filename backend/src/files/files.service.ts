@@ -51,15 +51,17 @@ export class FilesService {
     return this.fileRepo.find({ where: { documentId }, order: { createdAt: 'DESC' } });
   }
 
-  async getDownloadUrl(fileId: string) {
+  async getDownloadUrl(fileId: string, inline = false) {
     const file = await this.fileRepo.findOne({ where: { id: fileId } });
     if (!file) throw new NotFoundException('Tài liệu không tồn tại');
     // Tải về đúng tên gốc (kể cả tiếng Việt) — dùng RFC 5987 filename*=UTF-8''
     const encoded = encodeURIComponent(file.filename);
-    const disposition = `attachment; filename="${file.filename.replace(/[^\x20-\x7e]/g, '_')}"; filename*=UTF-8''${encoded}`;
-    const url = await this.minio.presignedUrl(file.storageKey, 3600, {
-      'response-content-disposition': disposition,
-    });
+    const kind = inline ? 'inline' : 'attachment';
+    const disposition = `${kind}; filename="${file.filename.replace(/[^\x20-\x7e]/g, '_')}"; filename*=UTF-8''${encoded}`;
+    const reqParams: Record<string, string> = { 'response-content-disposition': disposition };
+    // Xem trực tiếp: ép trình duyệt hiển thị PDF inline
+    if (inline) reqParams['response-content-type'] = file.mimetype;
+    const url = await this.minio.presignedUrl(file.storageKey, 3600, reqParams);
     return { url, filename: file.filename };
   }
 
