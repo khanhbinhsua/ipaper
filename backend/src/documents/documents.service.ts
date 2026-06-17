@@ -219,24 +219,33 @@ export class DocumentsService {
     }));
 
     // Lấy PDF tài liệu phê duyệt gốc (nếu có) để nối lịch sử vào cuối
-    let basePdf: Buffer | undefined;
-    const baseFile = await this.fileRepo.findOne({
-      where: { documentId: docId },
-      order: { createdAt: 'DESC' },
+    // Chọn đúng PDF người gửi tải lên để nối thêm trang lịch sử (giữ nguyên mọi trang gốc).
+    // Ưu tiên: tài liệu phê duyệt chính (isApprovalDoc), nếu không có thì PDF tải lên sớm nhất.
+    const pdfFiles = await this.fileRepo.find({
+      where: { documentId: docId, mimetype: 'application/pdf' },
+      order: { createdAt: 'ASC' },
     });
-    if (baseFile && baseFile.mimetype === 'application/pdf') {
+    // Bỏ qua các file lịch sử đã sinh trước đó (nếu hoàn thành lại)
+    const candidates = pdfFiles.filter((f) => !f.note?.includes('lịch sử'));
+    const baseFile = candidates.find((f) => f.isApprovalDoc) || candidates[0];
+
+    let basePdf: Buffer | undefined;
+    if (baseFile) {
       try { basePdf = await this.minio.getBuffer(baseFile.storageKey); } catch { /* bỏ qua */ }
     }
 
-    // Sinh PDF + lưu MinIO + tạo bản ghi file
+    // Nối trang lịch sử vào cuối PDF gốc (hoặc tạo PDF mới nếu không có file đính kèm PDF)
     const pdfBuffer = await this.approvalPdf.build(doc, history, basePdf);
-    const storageKey = `${docId}/lich-su-phe-duyet-${uuid()}.pdf`;
+    const outName = baseFile
+      ? baseFile.filename.replace(/\.pdf$/i, '') + ' (kèm lịch sử phê duyệt).pdf'
+      : 'Tai-lieu-phe-duyet.pdf';
+    const storageKey = `${docId}/final-${uuid()}.pdf`;
     await this.minio.upload(storageKey, pdfBuffer, 'application/pdf');
     await this.fileRepo.save(this.fileRepo.create({
       documentId: docId, uploadedById: userId,
-      filename: 'Lich-su-phe-duyet.pdf', mimetype: 'application/pdf',
+      filename: outName, mimetype: 'application/pdf',
       size: pdfBuffer.length, storageKey, version: 1,
-      isApprovalDoc: false, note: 'PDF lịch sử phê duyệt (tự sinh khi hoàn thành)',
+      isApprovalDoc: true, note: 'Tài liệu cuối (giữ nguyên trang gốc + trang lịch sử phê duyệt)',
     }));
 
     doc.status = DocumentStatus.COMPLETED;
