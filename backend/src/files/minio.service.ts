@@ -54,9 +54,9 @@ export class MinioService implements OnModuleInit {
     });
   }
 
-  // Link tải tạm thời (mặc định 1 giờ)
-  async presignedUrl(key: string, expirySeconds = 3600): Promise<string> {
-    return this.client.presignedGetObject(this.bucket, key, expirySeconds);
+  // Link tải tạm thời (mặc định 1 giờ). reqParams cho phép set Content-Disposition...
+  async presignedUrl(key: string, expirySeconds = 3600, reqParams?: Record<string, string>): Promise<string> {
+    return this.client.presignedGetObject(this.bucket, key, expirySeconds, reqParams);
   }
 
   async remove(key: string) {

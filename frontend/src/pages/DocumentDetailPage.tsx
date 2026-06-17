@@ -80,6 +80,8 @@ export default function DocumentDetailPage() {
   const canApprove = doc.assignedToId === user?.id && doc.status === 'pending';
   // Người tạo điều phối: hồ sơ đã duyệt 1 cấp đang ở mình → gửi tiếp hoặc hoàn thành
   const canRoute = doc.createdById === user?.id && doc.status === 'approved';
+  // Hồ sơ bị trả về → người tạo trình lại
+  const canResubmit = doc.createdById === user?.id && doc.status === 'returned';
 
   const modalTitles: Record<ActionType, string> = {
     approve: 'Xác nhận Duyệt', reject: 'Xác nhận Từ chối', return: 'Xác nhận Trả về',
@@ -107,6 +109,9 @@ export default function DocumentDetailPage() {
               loading={completeMutation.isPending}
               onClick={() => completeMutation.mutate()}>Hoàn thành</Button>
           </Space>
+        )}
+        {canResubmit && (
+          <Button type="primary" icon={<SendOutlined />} onClick={() => setForwardOpen(true)}>Trình lại</Button>
         )}
       </div>
 
@@ -223,7 +228,7 @@ export default function DocumentDetailPage() {
       </Modal>
 
       <Modal
-        title="Gửi duyệt tiếp (cấp trên)"
+        title={canResubmit ? 'Trình lại hồ sơ' : 'Gửi duyệt tiếp (cấp trên)'}
         open={forwardOpen}
         onOk={() => { if (!nextAssignee) { message.warning('Chọn người duyệt tiếp'); return; } forwardMutation.mutate(); }}
         onCancel={() => { setForwardOpen(false); setNextAssignee(undefined); setComment(''); }}

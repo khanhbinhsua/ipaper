@@ -20,7 +20,10 @@ export class FilesService {
   ) {}
 
   async attach(documentId: string, userId: string, file: UploadedFile, opts?: { isApprovalDoc?: boolean; note?: string }) {
-    const ext = file.originalname.includes('.') ? file.originalname.split('.').pop() : 'bin';
+    // Multer giải mã tên file multipart bằng latin1 → tên tiếng Việt bị mojibake.
+    // Giải mã lại về UTF-8 cho đúng.
+    const originalName = Buffer.from(file.originalname, 'latin1').toString('utf8');
+    const ext = originalName.includes('.') ? originalName.split('.').pop() : 'bin';
     const storageKey = `${documentId}/${uuid()}.${ext}`;
     await this.minio.upload(storageKey, file.buffer, file.mimetype);
 
@@ -36,7 +39,7 @@ export class FilesService {
 
     const entity = this.fileRepo.create({
       documentId, uploadedById: userId,
-      filename: file.originalname, mimetype: file.mimetype, size: file.size,
+      filename: originalName, mimetype: file.mimetype, size: file.size,
       storageKey, version,
       isApprovalDoc: opts?.isApprovalDoc ?? false,
       note: opts?.note,
@@ -51,7 +54,12 @@ export class FilesService {
   async getDownloadUrl(fileId: string) {
     const file = await this.fileRepo.findOne({ where: { id: fileId } });
     if (!file) throw new NotFoundException('Tài liệu không tồn tại');
-    const url = await this.minio.presignedUrl(file.storageKey);
+    // Tải về đúng tên gốc (kể cả tiếng Việt) — dùng RFC 5987 filename*=UTF-8''
+    const encoded = encodeURIComponent(file.filename);
+    const disposition = `attachment; filename="${file.filename.replace(/[^\x20-\x7e]/g, '_')}"; filename*=UTF-8''${encoded}`;
+    const url = await this.minio.presignedUrl(file.storageKey, 3600, {
+      'response-content-disposition': disposition,
+    });
     return { url, filename: file.filename };
   }
 

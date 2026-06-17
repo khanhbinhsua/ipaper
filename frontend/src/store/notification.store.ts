@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { io, Socket } from 'socket.io-client';
 import { api } from '../lib/api';
+import { queryClient } from '../lib/queryClient';
 
 export interface Noti {
   id: string;
@@ -43,6 +44,11 @@ export const useNotificationStore = create<NotiState>((set, get) => ({
     const socket = io(SOCKET_URL, { auth: { token } });
     socket.on('notification', (noti: Noti) => {
       set((s) => ({ items: [noti, ...s.items], unread: s.unread + 1 }));
+      // Cập nhật real-time: làm mới thống kê + danh sách hồ sơ + chi tiết
+      queryClient.invalidateQueries({ queryKey: ['statistics'] });
+      queryClient.invalidateQueries({ queryKey: ['documents'] });
+      queryClient.invalidateQueries({ queryKey: ['document'] });
+      if (noti.documentId) queryClient.invalidateQueries({ queryKey: ['document', noti.documentId] });
     });
     set({ socket });
   },
