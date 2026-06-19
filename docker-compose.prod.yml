@@ -38,6 +38,7 @@ services:
       MINIO_ROOT_PASSWORD: ${MINIO_PASS}
     volumes:
       - minio_data:/data
+    networks: [default, anonmed]
     healthcheck:
       test: ['CMD', 'mc', 'ready', 'local']
       interval: 10s
@@ -51,6 +52,7 @@ services:
     container_name: ipaper_backend
     restart: unless-stopped
     env_file: .env.prod
+    networks: [default, anonmed]
     depends_on:
       postgres: { condition: service_healthy }
       redis: { condition: service_healthy }
@@ -62,30 +64,20 @@ services:
       dockerfile: Dockerfile
     container_name: ipaper_frontend
     restart: unless-stopped
+    networks: [default, anonmed]
     depends_on:
       - backend
 
-  caddy:
-    image: caddy:2-alpine
-    container_name: ipaper_caddy
-    restart: unless-stopped
-    ports:
-      - '80:80'
-      - '443:443'
-    environment:
-      APP_DOMAIN: ${APP_DOMAIN}
-      STORAGE_DOMAIN: ${STORAGE_DOMAIN}
-    volumes:
-      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
-      - caddy_data:/data
-      - caddy_config:/config
-    depends_on:
-      - frontend
-      - minio
+# (Đã bỏ Caddy — dùng chung anonmed-nginx có sẵn để route domain + SSL)
 
 volumes:
   postgres_data:
   redis_data:
   minio_data:
-  caddy_data:
-  caddy_config:
+
+networks:
+  default:
+  # Mạng của anonmed-nginx — để nginx gọi được container iPaper theo tên
+  anonmed:
+    external: true
+    name: docker_anonmed-network
