@@ -13,22 +13,25 @@ export class MinioService implements OnModuleInit {
   constructor(private config: ConfigService) {
     const accessKey = config.get('MINIO_USER', 'minioadmin');
     const secretKey = config.get('MINIO_PASS', 'minioadmin123');
+    // Đặt region cố định → minio-js KHÔNG gọi network để hỏi bucket region khi ký presigned URL
+    const region = config.get('MINIO_REGION', 'us-east-1');
 
     this.client = new Client({
       endPoint: config.get('MINIO_ENDPOINT', 'localhost'),
       port: Number(config.get('MINIO_PORT', 9100)),
       useSSL: config.get('MINIO_USE_SSL') === 'true',
+      region,
       accessKey, secretKey,
     });
 
     // Nếu có endpoint công khai (production) → dùng để ký presigned URL.
-    // presignedGetObject chỉ tính chữ ký cục bộ, không cần kết nối mạng.
     const publicEndpoint = config.get('MINIO_PUBLIC_ENDPOINT');
     this.publicClient = publicEndpoint
       ? new Client({
           endPoint: publicEndpoint,
           port: Number(config.get('MINIO_PUBLIC_PORT', 443)),
           useSSL: config.get('MINIO_PUBLIC_USE_SSL', 'true') === 'true',
+          region,
           accessKey, secretKey,
         })
       : this.client;
