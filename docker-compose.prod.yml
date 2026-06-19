@@ -38,7 +38,11 @@ services:
       MINIO_ROOT_PASSWORD: ${MINIO_PASS}
     volumes:
       - minio_data:/data
-    networks: [default, anonmed]
+    networks:
+      default:
+        aliases: [ipaper-minio]
+      anonmed:
+        aliases: [ipaper-minio]
     healthcheck:
       test: ['CMD', 'mc', 'ready', 'local']
       interval: 10s
