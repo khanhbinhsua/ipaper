@@ -24,7 +24,8 @@ import { LeaveModule } from './leave/leave.module';
         password: config.get('DB_PASS'),
         database: config.get('DB_NAME'),
         entities: [__dirname + '/**/*.entity{.ts,.js}'],
-        synchronize: config.get('NODE_ENV') === 'development',
+        // Tự tạo/đồng bộ schema khi dev, hoặc khi bật cờ DB_SYNC=true (lần deploy đầu)
+        synchronize: config.get('NODE_ENV') === 'development' || config.get('DB_SYNC') === 'true',
         logging: false,
       }),
       inject: [ConfigService],
