@@ -1,0 +1,7 @@
+node_modules
+dist
+.env
+dev.log
+*.pdf
+*.png
+npm-debug.log

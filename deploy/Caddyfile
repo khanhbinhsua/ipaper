@@ -1,0 +1,20 @@
+# Reverse proxy + HTTPS tự động (Let's Encrypt).
+# Domain lấy từ biến môi trường trong .env.prod
+
+# App chính: phục vụ frontend + proxy API/WebSocket sang backend
+{$APP_DOMAIN} {
+	# API và WebSocket → backend
+	@backend path /api/* /socket.io/*
+	reverse_proxy @backend backend:3000
+
+	# Còn lại → frontend (static)
+	reverse_proxy frontend:80
+
+	encode gzip
+}
+
+# Tên miền lưu trữ file (MinIO) — phục vụ link tải/xem PDF (presigned URL)
+{$STORAGE_DOMAIN} {
+	reverse_proxy minio:9000
+	encode gzip
+}

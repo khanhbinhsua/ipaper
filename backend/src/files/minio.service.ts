@@ -6,17 +6,33 @@ import { Readable } from 'stream';
 @Injectable()
 export class MinioService implements OnModuleInit {
   private readonly logger = new Logger(MinioService.name);
-  private client: Client;
+  private client: Client;        // nội bộ — upload/download/bucket
+  private publicClient: Client;  // ký presigned URL theo endpoint công khai (trình duyệt truy cập)
   private bucket: string;
 
   constructor(private config: ConfigService) {
+    const accessKey = config.get('MINIO_USER', 'minioadmin');
+    const secretKey = config.get('MINIO_PASS', 'minioadmin123');
+
     this.client = new Client({
       endPoint: config.get('MINIO_ENDPOINT', 'localhost'),
       port: Number(config.get('MINIO_PORT', 9100)),
       useSSL: config.get('MINIO_USE_SSL') === 'true',
-      accessKey: config.get('MINIO_USER', 'minioadmin'),
-      secretKey: config.get('MINIO_PASS', 'minioadmin123'),
+      accessKey, secretKey,
     });
+
+    // Nếu có endpoint công khai (production) → dùng để ký presigned URL.
+    // presignedGetObject chỉ tính chữ ký cục bộ, không cần kết nối mạng.
+    const publicEndpoint = config.get('MINIO_PUBLIC_ENDPOINT');
+    this.publicClient = publicEndpoint
+      ? new Client({
+          endPoint: publicEndpoint,
+          port: Number(config.get('MINIO_PUBLIC_PORT', 443)),
+          useSSL: config.get('MINIO_PUBLIC_USE_SSL', 'true') === 'true',
+          accessKey, secretKey,
+        })
+      : this.client;
+
     this.bucket = config.get('MINIO_BUCKET', 'ipaper-files');
   }
 
@@ -55,8 +71,9 @@ export class MinioService implements OnModuleInit {
   }
 
   // Link tải tạm thời (mặc định 1 giờ). reqParams cho phép set Content-Disposition...
+  // Ký bằng publicClient để URL trỏ tới endpoint công khai (trình duyệt truy cập được).
   async presignedUrl(key: string, expirySeconds = 3600, reqParams?: Record<string, string>): Promise<string> {
-    return this.client.presignedGetObject(this.bucket, key, expirySeconds, reqParams);
+    return this.publicClient.presignedGetObject(this.bucket, key, expirySeconds, reqParams);
   }
 
   async remove(key: string) {
