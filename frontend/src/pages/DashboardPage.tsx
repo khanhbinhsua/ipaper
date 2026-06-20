@@ -46,9 +46,9 @@ export default function DashboardPage() {
 
   return (
     <div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24, flexWrap: 'wrap', gap: 12 }}>
         <h2 style={{ margin: 0 }}>Thống kê hồ sơ</h2>
-        <div style={{ display: 'flex', gap: 12 }}>
+        <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
           <RangePicker
             value={range}
             onChange={(v) => setRange(v as [Dayjs, Dayjs] | null)}
@@ -63,7 +63,7 @@ export default function DashboardPage() {
       <Spin spinning={isLoading}>
         <Row gutter={16}>
           {counters.map((c) => (
-            <Col span={6} key={c.key}>
+            <Col xs={12} md={6} key={c.key}>
               <Card hoverable onClick={() => navigate(c.path)} style={{ borderTop: `3px solid ${c.color}` }}>
                 <Statistic title={c.label} value={c.value} prefix={<span style={{ color: c.color }}>{c.icon}</span>} />
               </Card>
@@ -71,8 +71,8 @@ export default function DashboardPage() {
           ))}
         </Row>
 
-        <Row gutter={16} style={{ marginTop: 24 }}>
-          <Col span={12}>
+        <Row gutter={[16, 16]} style={{ marginTop: 24 }}>
+          <Col xs={24} md={12}>
             <Card title="Trạng thái hồ sơ">
               <ResponsiveContainer width="100%" height={280}>
                 <PieChart>
@@ -87,7 +87,7 @@ export default function DashboardPage() {
               </ResponsiveContainer>
             </Card>
           </Col>
-          <Col span={12}>
+          <Col xs={24} md={12}>
             <Card title="Tổng quan">
               <Row gutter={[16, 16]}>
                 <Col span={12}><Statistic title="Tổng số hồ sơ" value={data?.chart.total ?? 0} /></Col>

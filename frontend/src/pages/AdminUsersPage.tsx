@@ -76,6 +76,7 @@ export default function AdminUsersPage() {
 
       <Card>
         <Table rowKey="id" loading={isLoading} columns={columns} dataSource={users ?? []}
+          scroll={{ x: 'max-content' }}
           pagination={{ pageSize: 15, showTotal: (t) => `Tổng ${t} người dùng` }} />
       </Card>
 

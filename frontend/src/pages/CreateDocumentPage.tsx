@@ -65,7 +65,7 @@ export default function CreateDocumentPage() {
       <Form form={form} labelCol={labelCol} wrapperCol={wrapperCol} labelAlign="left" colon={false}
         initialValues={{ priority: 'normal', docType: tpl?.docType || 'Trình ký PDF có sẵn', status: 'Lưu nháp', workflow: 'Quy trình PDF có sẵn' }}>
         <Row gutter={40}>
-          <Col span={12}>
+          <Col xs={24} md={12}>
             <Form.Item name="title" label="Tiêu đề" required rules={[{ required: true, message: 'Nhập tiêu đề' }]}>
               <Input />
             </Form.Item>
@@ -86,7 +86,7 @@ export default function CreateDocumentPage() {
             </Form.Item>
           </Col>
 
-          <Col span={12}>
+          <Col xs={24} md={12}>
             <Form.Item name="docType" label="Loại yêu cầu" required>
               <Input />
             </Form.Item>
@@ -146,6 +146,7 @@ export default function CreateDocumentPage() {
         dataSource={files}
         locale={{ emptyText: 'Không có dữ liệu' }}
         pagination={false}
+        scroll={{ x: 'max-content' }}
         columns={[
           { title: '#', render: (_t, _r, i) => i + 1, width: 60 },
           { title: 'Tên tài liệu', dataIndex: 'name' },

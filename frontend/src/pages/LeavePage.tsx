@@ -76,7 +76,7 @@ export default function LeavePage() {
           { key: 'create', label: 'Tạo đơn', children: <CreateLeaveForm onDone={() => setTab('mine')} /> },
           {
             key: 'mine', label: 'Đơn của tôi',
-            children: <Table rowKey="id" loading={mine.isLoading} dataSource={mine.data ?? []} pagination={false}
+            children: <Table rowKey="id" loading={mine.isLoading} dataSource={mine.data ?? []} pagination={false} scroll={{ x: 'max-content' }}
               columns={[
                 { title: 'Loại', dataIndex: 'leaveType', render: (v: string) => typeLabels[v] ?? v },
                 { title: 'Thời gian', render: (_: any, r: any) => dateRange(r) },
@@ -86,7 +86,7 @@ export default function LeavePage() {
           },
           {
             key: 'pending', label: 'Chờ tôi duyệt',
-            children: <Table rowKey="id" loading={pending.isLoading} dataSource={pending.data ?? []} pagination={false}
+            children: <Table rowKey="id" loading={pending.isLoading} dataSource={pending.data ?? []} pagination={false} scroll={{ x: 'max-content' }}
               columns={[
                 { title: 'Người nghỉ', render: (_: any, r: any) => r.user?.fullName || r.user?.username },
                 { title: 'Loại', dataIndex: 'leaveType', render: (v: string) => typeLabels[v] ?? v },

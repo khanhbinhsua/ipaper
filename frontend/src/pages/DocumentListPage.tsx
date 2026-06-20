@@ -103,6 +103,7 @@ export default function DocumentListPage({ box }: { box: Box }) {
         loading={isLoading}
         columns={columns}
         dataSource={data?.items ?? []}
+        scroll={{ x: 'max-content' }}
         pagination={{
           current: page, pageSize: 10, total: data?.total ?? 0,
           onChange: setPage, showTotal: (t) => `Tổng ${t} hồ sơ`,

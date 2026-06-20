@@ -56,6 +56,7 @@ export default function TemplatesPage() {
       </Card>
 
       <Table rowKey="id" loading={list.isLoading} columns={columns} dataSource={list.data ?? []}
+        scroll={{ x: 'max-content' }}
         pagination={{ pageSize: 10, showTotal: (t) => `Tổng ${t} biểu mẫu` }} />
     </div>
   );
