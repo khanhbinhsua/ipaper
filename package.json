@@ -9,5 +9,8 @@
     "infra:logs": "docker compose logs -f",
     "build:backend": "cd backend && npm run build",
     "build:frontend": "cd frontend && npm run build"
+  },
+  "dependencies": {
+    "playwright": "^1.61.0"
   }
 }
