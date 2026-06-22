@@ -19,8 +19,8 @@ async function init() {
   const tenantRepo = ds.getRepository(Tenant);
   const userRepo = ds.getRepository(User);
 
-  const slug = process.env.INIT_TENANT_SLUG || 'congty';
-  const tenantName = process.env.INIT_TENANT_NAME || 'Công ty';
+  const slug = process.env.INIT_TENANT_SLUG || 'DKGroup';
+  const tenantName = process.env.INIT_TENANT_NAME || 'DK Group';
   const adminUser = process.env.INIT_ADMIN_USER || 'admin';
   const adminPass = process.env.INIT_ADMIN_PASS || 'Admin@123';
   const adminEmail = process.env.INIT_ADMIN_EMAIL || 'admin@ipaper.local';

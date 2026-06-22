@@ -26,9 +26,9 @@ export default function LoginPage() {
           <Typography.Text type="secondary">Hệ thống luồng văn bản điện tử</Typography.Text>
         </div>
 
-        <Form layout="vertical" onFinish={onFinish} autoComplete="off">
+        <Form layout="vertical" onFinish={onFinish} autoComplete="off" initialValues={{ tenantSlug: 'DKGroup' }}>
           <Form.Item name="tenantSlug" rules={[{ required: true, message: 'Nhập mã tổ chức' }]}>
-            <Input prefix={<BankOutlined />} placeholder="Mã tổ chức (vd: demo)" size="large" />
+            <Input prefix={<BankOutlined />} placeholder="Mã tổ chức" size="large" />
           </Form.Item>
 
           <Form.Item name="username" rules={[{ required: true, message: 'Nhập tên đăng nhập' }]}>
