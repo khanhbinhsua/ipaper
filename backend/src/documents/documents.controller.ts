@@ -53,7 +53,7 @@ export class DocumentsController {
 
   @Get('search')
   search(@Request() req, @Query() dto: SearchDocumentDto) {
-    return this.service.search(req.user.tenantId, req.user.id, dto);
+    return this.service.search(req.user.tenantId, req.user.id, dto, req.user.role);
   }
 
   @Get(':id')

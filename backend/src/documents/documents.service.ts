@@ -79,9 +79,11 @@ export class DocumentsService {
   }
 
   // Tìm kiếm theo box (inbox/outbox/draft/related/all)
-  async search(tenantId: string, userId: string, dto: SearchDocumentDto) {
+  async search(tenantId: string, userId: string, dto: SearchDocumentDto, role?: string) {
     const page = Number(dto.page) || 1;
     const pageSize = Number(dto.pageSize) || 10;
+    // Chỉ Giám đốc & Admin được xem toàn bộ hồ sơ; còn lại chỉ thấy hồ sơ liên quan tới mình
+    const canSeeAll = role === 'director' || role === 'admin';
 
     const qb = this.docRepo
       .createQueryBuilder('d')
@@ -112,7 +114,17 @@ export class DocumentsService {
       case 'related':
         qb.andWhere('d.ccUserIds @> :ccUser', { ccUser: JSON.stringify([userId]) });
         break;
-      // 'all' — không filter thêm
+      // 'all' (Tìm hồ sơ): Giám đốc/Admin xem tất cả; người khác chỉ thấy hồ sơ liên quan tới mình
+      default:
+        if (!canSeeAll) {
+          qb.andWhere(new Brackets((w) => {
+            w.where('d.createdById = :uid', { uid: userId })          // mình trình
+              .orWhere('d.assignedToId = :uid', { uid: userId })       // được giao xử lý
+              .orWhere('d.ccUserIds @> :ccU', { ccU: JSON.stringify([userId]) }) // liên quan (CC)
+              .orWhere('EXISTS (SELECT 1 FROM approvals a WHERE a."documentId" = d.id AND a."actorId" = :uid)', { uid: userId }); // đã thao tác
+          }));
+        }
+        break;
     }
 
     if (dto.keyword) {
