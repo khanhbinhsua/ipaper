@@ -27,9 +27,13 @@ export class CreateDocumentDto {
   @IsOptional() @IsString()
   assignedToId?: string;
 
-  // Người duyệt cấp 2 (tự chuyển tới sau khi cấp 1 duyệt)
+  // Người duyệt cấp 2 (cũ — giữ tương thích; ưu tiên dùng nextApproverIds)
   @IsOptional() @IsString()
   secondApproverId?: string;
+
+  // Danh sách người duyệt các cấp tiếp theo (cấp 2..5), theo thứ tự duyệt
+  @IsOptional() @IsArray()
+  nextApproverIds?: string[];
 
   // Người liên quan (CC)
   @IsOptional() @IsArray()

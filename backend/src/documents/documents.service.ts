@@ -24,6 +24,9 @@ export class DocumentsService {
 
   // Tạo nháp hoặc tạo mới
   async create(tenantId: string, userId: string, dto: CreateDocumentDto) {
+    // Hàng đợi người duyệt cấp 2..5: ưu tiên nextApproverIds; fallback secondApproverId (cũ)
+    const queue = (dto.nextApproverIds ?? (dto.secondApproverId ? [dto.secondApproverId] : []))
+      .filter(Boolean);
     const doc = this.docRepo.create({
       ...dto,
       tenantId,
@@ -31,6 +34,7 @@ export class DocumentsService {
       createdById: userId,
       status: DocumentStatus.DRAFT,
       ccUserIds: dto.ccUserIds ?? [],
+      approverQueue: queue,
     });
     return this.docRepo.save(doc);
   }
@@ -186,14 +190,19 @@ export class DocumentsService {
     const doc = await this.getAssigned(tenantId, userId, docId);
     await this.logApproval(docId, userId, ApprovalAction.APPROVE, doc.currentStep, comment);
 
-    // Tự động chuyển sang người duyệt cấp 2 nếu đã cấu hình khi tạo hồ sơ
+    // Tự động chuyển sang người duyệt cấp kế tiếp trong hàng đợi (cấp 2..5)
+    if (!nextAssigneeId && doc.approverQueue?.length) {
+      nextAssigneeId = doc.approverQueue[0];
+      doc.approverQueue = doc.approverQueue.slice(1); // đã dùng, bỏ khỏi hàng đợi
+    }
+    // Tương thích hồ sơ cũ (tạo trước khi có hàng đợi)
     if (!nextAssigneeId && doc.secondApproverId) {
       nextAssigneeId = doc.secondApproverId;
-      doc.secondApproverId = null as any; // đã dùng, tránh lặp
+      doc.secondApproverId = null as any;
     }
 
     if (nextAssigneeId) {
-      // Chuyển tới người duyệt kế tiếp (cấp 2)
+      // Chuyển tới người duyệt kế tiếp
       doc.currentStep += 1;
       doc.assignedToId = nextAssigneeId;
       doc.status = DocumentStatus.PENDING;

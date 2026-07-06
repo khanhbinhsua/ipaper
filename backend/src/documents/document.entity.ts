@@ -73,9 +73,14 @@ export class Document {
   @Column({ nullable: true })
   assignedToId: string;
 
-  // Người duyệt cấp 2 (tự chuyển tới sau khi cấp 1 duyệt xong). Null nếu chỉ 1 cấp.
+  // (Cũ — giữ để không mất dữ liệu hồ sơ đang chạy; logic mới dùng approverQueue)
   @Column({ nullable: true })
   secondApproverId: string;
+
+  // Hàng đợi người duyệt các cấp tiếp theo (cấp 2..5), theo thứ tự.
+  // Mỗi lần duyệt xong, hệ thống lấy người đầu hàng đợi chuyển tiếp.
+  @Column({ type: 'jsonb', default: [] })
+  approverQueue: string[];
 
   // CC — lưu dạng mảng userId
   @Column({ type: 'jsonb', default: [] })

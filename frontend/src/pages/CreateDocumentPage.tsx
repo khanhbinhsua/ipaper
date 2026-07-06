@@ -29,7 +29,10 @@ export default function CreateDocumentPage() {
   // Tạo hồ sơ rồi upload các tài liệu đính kèm đang giữ
   const persist = async () => {
     const values = await form.validateFields();
-    const payload = { ...values, dueDate: values.dueDate?.toISOString() };
+    // Gom người duyệt cấp 2..4 thành hàng đợi (giữ thứ tự, bỏ ô trống)
+    const nextApproverIds = [values.approver2, values.approver3, values.approver4].filter(Boolean);
+    const { approver2, approver3, approver4, ...rest } = values;
+    const payload = { ...rest, nextApproverIds, dueDate: values.dueDate?.toISOString() };
     const { data: doc } = await createMutation.mutateAsync(payload);
     for (const f of files) {
       const fd = new FormData();
@@ -82,9 +85,17 @@ export default function CreateDocumentPage() {
               tooltip="Hồ sơ được chuyển tới người này duyệt trước (VD: Trưởng phòng)">
               <UserSelect placeholder="VD: Trưởng phòng — tìm theo tên/email" />
             </Form.Item>
-            <Form.Item name="secondApproverId" label="Người duyệt cấp 2"
-              tooltip="Tùy chọn — sau khi cấp 1 duyệt, hồ sơ tự chuyển tới người này duyệt tiếp (VD: Giám đốc)">
-              <UserSelect placeholder="VD: Giám đốc — để trống nếu chỉ 1 cấp" />
+            <Form.Item name="approver2" label="Người duyệt cấp 2"
+              tooltip="Tùy chọn — sau khi cấp 1 duyệt, hồ sơ tự chuyển tới người này (VD: Giám đốc)">
+              <UserSelect placeholder="Để trống nếu chỉ 1 cấp" />
+            </Form.Item>
+            <Form.Item name="approver3" label="Người duyệt cấp 3"
+              tooltip="Tùy chọn — duyệt sau cấp 2">
+              <UserSelect placeholder="Để trống nếu không có" />
+            </Form.Item>
+            <Form.Item name="approver4" label="Người duyệt cấp 4"
+              tooltip="Tùy chọn — duyệt sau cấp 3">
+              <UserSelect placeholder="Để trống nếu không có" />
             </Form.Item>
             <Form.Item name="description" label="Mô tả">
               <TextArea rows={3} />
