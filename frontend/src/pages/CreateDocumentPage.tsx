@@ -62,7 +62,7 @@ export default function CreateDocumentPage() {
         </div>
       </div>
 
-      <Form form={form} labelCol={labelCol} wrapperCol={wrapperCol} labelAlign="left" colon={false}
+      <Form form={form} labelCol={labelCol} wrapperCol={wrapperCol} labelAlign="left" colon={false} labelWrap
         initialValues={{ priority: 'normal', docType: tpl?.docType || 'Trình ký PDF có sẵn', status: 'Lưu nháp', workflow: 'Quy trình PDF có sẵn' }}>
         <Row gutter={40}>
           <Col xs={24} md={12}>
