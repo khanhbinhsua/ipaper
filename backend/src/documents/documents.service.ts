@@ -186,8 +186,14 @@ export class DocumentsService {
     const doc = await this.getAssigned(tenantId, userId, docId);
     await this.logApproval(docId, userId, ApprovalAction.APPROVE, doc.currentStep, comment);
 
+    // Tự động chuyển sang người duyệt cấp 2 nếu đã cấu hình khi tạo hồ sơ
+    if (!nextAssigneeId && doc.secondApproverId) {
+      nextAssigneeId = doc.secondApproverId;
+      doc.secondApproverId = null as any; // đã dùng, tránh lặp
+    }
+
     if (nextAssigneeId) {
-      // Người duyệt chỉ định thẳng người duyệt kế tiếp
+      // Chuyển tới người duyệt kế tiếp (cấp 2)
       doc.currentStep += 1;
       doc.assignedToId = nextAssigneeId;
       doc.status = DocumentStatus.PENDING;

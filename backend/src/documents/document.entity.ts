@@ -73,6 +73,10 @@ export class Document {
   @Column({ nullable: true })
   assignedToId: string;
 
+  // Người duyệt cấp 2 (tự chuyển tới sau khi cấp 1 duyệt xong). Null nếu chỉ 1 cấp.
+  @Column({ nullable: true })
+  secondApproverId: string;
+
   // CC — lưu dạng mảng userId
   @Column({ type: 'jsonb', default: [] })
   ccUserIds: string[];

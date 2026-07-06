@@ -23,9 +23,13 @@ export class CreateDocumentDto {
   @IsOptional() @IsString()
   workflowId?: string;
 
-  // Người duyệt đầu tiên (chuyển tới)
+  // Người duyệt cấp 1 (chuyển tới)
   @IsOptional() @IsString()
   assignedToId?: string;
+
+  // Người duyệt cấp 2 (tự chuyển tới sau khi cấp 1 duyệt)
+  @IsOptional() @IsString()
+  secondApproverId?: string;
 
   // Người liên quan (CC)
   @IsOptional() @IsArray()
