@@ -48,7 +48,7 @@ export default function CreateDocumentPage() {
     navigate('/outbox');
   };
 
-  const labelCol = { flex: '130px' };
+  const labelCol = { flex: '150px' };
   const wrapperCol = { flex: 1 };
 
   return (
@@ -78,11 +78,12 @@ export default function CreateDocumentPage() {
             <Form.Item name="dueDate" label="Thời hạn thực hiện">
               <DatePicker style={{ width: '100%' }} format="DD/MM/YYYY" />
             </Form.Item>
-            <Form.Item name="assignedToId" label="Chuyển tới — Người duyệt cấp 1" required rules={[{ required: true, message: 'Chọn người duyệt cấp 1' }]}>
+            <Form.Item name="assignedToId" label="Người duyệt cấp 1" required rules={[{ required: true, message: 'Chọn người duyệt cấp 1' }]}
+              tooltip="Hồ sơ được chuyển tới người này duyệt trước (VD: Trưởng phòng)">
               <UserSelect placeholder="VD: Trưởng phòng — tìm theo tên/email" />
             </Form.Item>
-            <Form.Item name="secondApproverId" label="Người duyệt cấp 2 (tùy chọn)"
-              tooltip="Sau khi cấp 1 duyệt, hồ sơ tự chuyển tới người này duyệt tiếp">
+            <Form.Item name="secondApproverId" label="Người duyệt cấp 2"
+              tooltip="Tùy chọn — sau khi cấp 1 duyệt, hồ sơ tự chuyển tới người này duyệt tiếp (VD: Giám đốc)">
               <UserSelect placeholder="VD: Giám đốc — để trống nếu chỉ 1 cấp" />
             </Form.Item>
             <Form.Item name="description" label="Mô tả">
