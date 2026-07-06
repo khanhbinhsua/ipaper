@@ -81,20 +81,20 @@ export default function CreateDocumentPage() {
             <Form.Item name="dueDate" label="Thời hạn thực hiện">
               <DatePicker style={{ width: '100%' }} format="DD/MM/YYYY" />
             </Form.Item>
-            <Form.Item name="assignedToId" label="Người duyệt cấp 1" required rules={[{ required: true, message: 'Chọn người duyệt cấp 1' }]}
-              tooltip="Hồ sơ được chuyển tới người này duyệt trước (VD: Trưởng phòng)">
+            <Form.Item name="assignedToId" label="Duyệt I" required rules={[{ required: true, message: 'Chọn người duyệt cấp 1' }]}
+              tooltip="Người duyệt cấp 1 — hồ sơ được chuyển tới duyệt trước (VD: Trưởng phòng)">
               <UserSelect placeholder="VD: Trưởng phòng — tìm theo tên/email" />
             </Form.Item>
-            <Form.Item name="approver2" label="Người duyệt cấp 2"
-              tooltip="Tùy chọn — sau khi cấp 1 duyệt, hồ sơ tự chuyển tới người này (VD: Giám đốc)">
+            <Form.Item name="approver2" label="Duyệt II"
+              tooltip="Người duyệt cấp 2 (tùy chọn) — sau khi cấp 1 duyệt, tự chuyển tới (VD: Giám đốc)">
               <UserSelect placeholder="Để trống nếu chỉ 1 cấp" />
             </Form.Item>
-            <Form.Item name="approver3" label="Người duyệt cấp 3"
-              tooltip="Tùy chọn — duyệt sau cấp 2">
+            <Form.Item name="approver3" label="Duyệt III"
+              tooltip="Người duyệt cấp 3 (tùy chọn) — duyệt sau cấp 2">
               <UserSelect placeholder="Để trống nếu không có" />
             </Form.Item>
-            <Form.Item name="approver4" label="Người duyệt cấp 4"
-              tooltip="Tùy chọn — duyệt sau cấp 3">
+            <Form.Item name="approver4" label="Duyệt IV"
+              tooltip="Người duyệt cấp 4 (tùy chọn) — duyệt sau cấp 3">
               <UserSelect placeholder="Để trống nếu không có" />
             </Form.Item>
             <Form.Item name="description" label="Mô tả">
