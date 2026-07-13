@@ -10,7 +10,6 @@ import DashboardPage from './pages/DashboardPage';
 import CreateDocumentPage from './pages/CreateDocumentPage';
 import DocumentListPage from './pages/DocumentListPage';
 import DocumentDetailPage from './pages/DocumentDetailPage';
-import LeavePage from './pages/LeavePage';
 import ProfilePage from './pages/ProfilePage';
 import ChangePasswordPage from './pages/ChangePasswordPage';
 import TemplatesPage from './pages/TemplatesPage';
@@ -50,7 +49,6 @@ export default function App() {
               <Route path="/search" element={<DocumentListPage box="all" />} />
               <Route path="/create" element={<CreateDocumentPage />} />
               <Route path="/documents/:id" element={<DocumentDetailPage />} />
-              <Route path="/leave" element={<LeavePage />} />
               <Route path="/templates" element={<TemplatesPage />} />
               <Route path="/admin/users" element={<AdminUsersPage />} />
               <Route path="/profile" element={<ProfilePage />} />

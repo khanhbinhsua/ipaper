@@ -3,7 +3,7 @@ import { Layout, Menu, Avatar, Dropdown, Badge, List, Button, Empty, Drawer, Gri
 import {
   DashboardOutlined, InboxOutlined, SendOutlined, FileTextOutlined,
   TeamOutlined, SearchOutlined, PlusCircleOutlined, FormOutlined,
-  CalendarOutlined, BellOutlined, UserOutlined, LogoutOutlined, KeyOutlined,
+  BellOutlined, UserOutlined, LogoutOutlined, KeyOutlined,
   SettingOutlined, MenuOutlined,
 } from '@ant-design/icons';
 import { useNavigate, useLocation, Outlet } from 'react-router-dom';
@@ -22,7 +22,6 @@ const menuItems = [
   { key: '/search', icon: <SearchOutlined />, label: 'Tìm hồ sơ' },
   { key: '/create', icon: <PlusCircleOutlined />, label: 'Tạo yêu cầu' },
   { key: '/templates', icon: <FormOutlined />, label: 'Tạo yêu cầu theo mẫu' },
-  { key: '/leave', icon: <CalendarOutlined />, label: 'Đăng ký nghỉ' },
 ];
 
 // Mục chỉ dành cho admin

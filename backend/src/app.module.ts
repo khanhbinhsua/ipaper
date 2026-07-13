@@ -9,7 +9,6 @@ import { NotificationsModule } from './notifications/notifications.module';
 import { FilesModule } from './files/files.module';
 import { TemplatesModule } from './templates/templates.module';
 import { TenantsModule } from './tenants/tenants.module';
-import { LeaveModule } from './leave/leave.module';
 
 @Module({
   imports: [
@@ -38,7 +37,6 @@ import { LeaveModule } from './leave/leave.module';
     FilesModule,
     TemplatesModule,
     TenantsModule,
-    LeaveModule,
   ],
 })
 export class AppModule {}

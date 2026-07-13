@@ -23,7 +23,7 @@ async function seed() {
   const tplRepo = ds.getRepository(Template);
 
   // Xóa data cũ (theo thứ tự FK)
-  await ds.query('TRUNCATE TABLE approvals, document_files, documents, leave_requests, notifications, users, templates, workflows, tenants RESTART IDENTITY CASCADE');
+  await ds.query('TRUNCATE TABLE approvals, document_files, documents, notifications, users, templates, workflows, tenants RESTART IDENTITY CASCADE');
 
   // Tenant
   const tenant = await tenantRepo.save(
