@@ -7,7 +7,7 @@ import {
   SettingOutlined, MenuOutlined,
 } from '@ant-design/icons';
 import { useNavigate, useLocation, Outlet } from 'react-router-dom';
-import dayjs from 'dayjs';
+import { vnTime } from '../lib/datetime';
 import { useAuthStore } from '../store/auth.store';
 import { useNotificationStore } from '../store/notification.store';
 
@@ -77,7 +77,7 @@ export default function MainLayout() {
             >
               <List.Item.Meta
                 title={<span style={{ fontWeight: n.isRead ? 400 : 600, fontSize: 13 }}>{n.message}</span>}
-                description={<span style={{ fontSize: 11, color: '#999' }}>{dayjs(n.createdAt).format('DD/MM/YYYY HH:mm')}</span>}
+                description={<span style={{ fontSize: 11, color: '#999' }}>{vnTime(n.createdAt, 'DD/MM/YYYY HH:mm')}</span>}
               />
             </List.Item>
           )}

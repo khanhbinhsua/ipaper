@@ -11,6 +11,7 @@ import {
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import dayjs from 'dayjs';
+import { vnTime } from '../lib/datetime';
 import { api } from '../lib/api';
 import { useAuthStore } from '../store/auth.store';
 import UserSelect from '../components/UserSelect';
@@ -149,7 +150,7 @@ export default function DocumentDetailPage() {
                         <div>
                           <b>{actionLabels[a.action]}</b> — bước {a.step}
                           <div style={{ color: '#888', fontSize: 12 }}>
-                            {dayjs(a.createdAt).format('DD/MM/YYYY HH:mm:ss')}
+                            {vnTime(a.createdAt)}
                           </div>
                           {a.comment && <div style={{ marginTop: 4 }}>💬 {a.comment}</div>}
                         </div>

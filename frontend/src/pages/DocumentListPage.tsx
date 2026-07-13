@@ -3,7 +3,7 @@ import { Table, Input, Select, Button, Tag, Space, Card } from 'antd';
 import { SearchOutlined, EyeOutlined, DeleteOutlined } from '@ant-design/icons';
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
-import dayjs from 'dayjs';
+import { vnTime } from '../lib/datetime';
 import { api } from '../lib/api';
 
 type Box = 'inbox' | 'outbox' | 'draft' | 'related' | 'all';
@@ -67,7 +67,7 @@ export default function DocumentListPage({ box }: { box: Box }) {
     },
     {
       title: 'Ngày tạo', dataIndex: 'createdAt',
-      render: (v: string) => dayjs(v).format('DD/MM/YYYY HH:mm'),
+      render: (v: string) => vnTime(v, 'DD/MM/YYYY HH:mm'),
       sorter: true,
     },
     {

@@ -184,8 +184,9 @@ export class ApprovalPdfService {
   }
 
   private fmt(d: Date): string {
-    const x = new Date(d);
+    // Backend chạy UTC → cộng 7 giờ ra giờ Việt Nam (GMT+7), dùng getUTC* để chắc chắn đúng
+    const x = new Date(new Date(d).getTime() + 7 * 3600 * 1000);
     const p = (n: number) => String(n).padStart(2, '0');
-    return `${p(x.getDate())}-${p(x.getMonth() + 1)}-${x.getFullYear()} ${p(x.getHours())}:${p(x.getMinutes())}:${p(x.getSeconds())}`;
+    return `${p(x.getUTCDate())}-${p(x.getUTCMonth() + 1)}-${x.getUTCFullYear()} ${p(x.getUTCHours())}:${p(x.getUTCMinutes())}:${p(x.getUTCSeconds())}`;
   }
 }
