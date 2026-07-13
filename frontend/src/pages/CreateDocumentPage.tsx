@@ -43,7 +43,13 @@ export default function CreateDocumentPage() {
   };
 
   const handleSaveDraft = async () => { await persist(); message.success('Đã lưu nháp'); navigate('/draft'); };
-  const handleConsult = async () => { await persist(); message.success('Đã lưu và lấy ý kiến'); navigate('/draft'); };
+  const handleConsult = async () => {
+    const doc = await persist();
+    // Lấy ý kiến = cũng gửi hồ sơ tới người ở "Chuyển tới 1" để họ xem/cho ý kiến
+    await api.post(`/documents/${doc.id}/submit`);
+    message.success('Đã gửi lấy ý kiến tới người duyệt');
+    navigate('/outbox');
+  };
   const handleSubmit = async () => {
     const doc = await persist();
     await api.post(`/documents/${doc.id}/submit`);
