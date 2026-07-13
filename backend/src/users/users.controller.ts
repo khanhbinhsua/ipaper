@@ -20,8 +20,8 @@ export class UsersController {
   }
 
   @Get('search')
-  search(@Request() req, @Query('q') q?: string) {
-    return this.usersService.search(req.user.tenantId, q);
+  search(@Request() req, @Query('q') q?: string, @Query('role') role?: string) {
+    return this.usersService.search(req.user.tenantId, q, role);
   }
 
   @Get()

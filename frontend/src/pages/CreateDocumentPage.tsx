@@ -94,8 +94,8 @@ export default function CreateDocumentPage() {
               <UserSelect placeholder="Để trống nếu không có" />
             </Form.Item>
             <Form.Item name="approver4" label="Duyệt IV"
-              tooltip="Người duyệt cấp 4 (tùy chọn) — duyệt sau cấp 3">
-              <UserSelect placeholder="Để trống nếu không có" />
+              tooltip="Người duyệt cấp 4 (tùy chọn) — BẮT BUỘC là Ban Giám đốc; chỉ hiện người thuộc Ban Giám đốc">
+              <UserSelect role="director" placeholder="Chỉ chọn Ban Giám đốc" />
             </Form.Item>
             <Form.Item name="description" label="Mô tả">
               <TextArea rows={3} />

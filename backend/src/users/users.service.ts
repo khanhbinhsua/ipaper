@@ -24,14 +24,17 @@ export class UsersService {
   }
 
   // Tìm người dùng theo tên/email/username để chọn (chuyển tới, người liên quan, người duyệt)
-  search(tenantId: string, keyword?: string) {
+  // role: lọc theo vai trò (vd 'director' để chỉ hiện Ban Giám đốc)
+  search(tenantId: string, keyword?: string, role?: string) {
+    const base: any = { tenantId, isActive: true };
+    if (role) base.role = role;
     const where = keyword
       ? [
-          { tenantId, isActive: true, fullName: ILike(`%${keyword}%`) },
-          { tenantId, isActive: true, email: ILike(`%${keyword}%`) },
-          { tenantId, isActive: true, username: ILike(`%${keyword}%`) },
+          { ...base, fullName: ILike(`%${keyword}%`) },
+          { ...base, email: ILike(`%${keyword}%`) },
+          { ...base, username: ILike(`%${keyword}%`) },
         ]
-      : { tenantId, isActive: true };
+      : base;
     return this.repo.find({ where, select: SAFE_FIELDS, take: 20 });
   }
 
