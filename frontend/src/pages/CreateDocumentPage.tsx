@@ -77,7 +77,20 @@ export default function CreateDocumentPage() {
       </div>
 
       <Form form={form} labelCol={labelCol} wrapperCol={wrapperCol} labelAlign="left" colon={false} labelWrap
-        initialValues={{ priority: 'normal', docType: tpl?.docType || 'Trình ký PDF có sẵn', status: 'Lưu nháp', workflow: 'Quy trình PDF có sẵn' }}>
+        initialValues={{
+          priority: tpl?.priority || 'normal',
+          docType: tpl?.docType || 'Trình ký PDF có sẵn',
+          status: 'Lưu nháp',
+          workflow: 'Quy trình PDF có sẵn',
+          // Điền sẵn từ biểu mẫu
+          description: tpl?.description,
+          orgUnit: tpl?.orgUnit,
+          assignedToId: tpl?.assignedToId,
+          approver2: tpl?.nextApproverIds?.[0],
+          approver3: tpl?.nextApproverIds?.[1],
+          approver4: tpl?.nextApproverIds?.[2],
+          ccUserIds: tpl?.ccUserIds,
+        }}>
         <Row gutter={40}>
           <Col xs={24} md={12}>
             <Form.Item name="title" label="Tiêu đề" required rules={[{ required: true, message: 'Nhập tiêu đề' }]}>

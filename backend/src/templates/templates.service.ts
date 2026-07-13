@@ -8,6 +8,13 @@ interface CreateTemplateDto {
   category: string;
   docType?: string;
   workflowId?: string;
+  // Preset fields
+  description?: string;
+  orgUnit?: string;
+  priority?: string;
+  assignedToId?: string;
+  nextApproverIds?: string[];
+  ccUserIds?: string[];
 }
 
 @Injectable()
@@ -39,7 +46,12 @@ export class TemplatesService {
 
   // === Quản trị ===
   create(tenantId: string, dto: CreateTemplateDto) {
-    return this.repo.save(this.repo.create({ ...dto, tenantId }));
+    return this.repo.save(this.repo.create({
+      ...dto,
+      tenantId,
+      nextApproverIds: dto.nextApproverIds ?? [],
+      ccUserIds: dto.ccUserIds ?? [],
+    }));
   }
 
   async update(tenantId: string, id: string, dto: Partial<CreateTemplateDto> & { isActive?: boolean }) {
