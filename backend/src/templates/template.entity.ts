@@ -50,6 +50,10 @@ export class Template {
   @Column({ type: 'jsonb', default: [] })
   ccUserIds: string[]; // Người liên quan
 
+  // File mẫu đính kèm — nhân viên có thể tải về dùng khi tạo hồ sơ từ biểu mẫu này
+  @Column({ type: 'jsonb', default: [] })
+  templateFiles: Array<{ key: string; originalName: string; size: number; mimeType: string }>;
+
   @Column({ default: true })
   isActive: boolean;
 

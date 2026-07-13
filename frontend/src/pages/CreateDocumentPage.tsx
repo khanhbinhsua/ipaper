@@ -167,6 +167,25 @@ export default function CreateDocumentPage() {
         <Button icon={<MessageOutlined />} onClick={handleConsult} loading={createMutation.isPending}>Lấy ý kiến</Button>
       </div>
 
+      {/* File mẫu từ biểu mẫu — chỉ hiện khi tạo hồ sơ từ biểu mẫu và có file mẫu */}
+      {tpl?.templateFiles?.length ? (
+        <div style={{ background: '#fff7e6', border: '1px solid #ffd591', borderRadius: 4, padding: '10px 14px', marginBottom: 16 }}>
+          <div style={{ marginBottom: 6, fontWeight: 600, color: '#d46b08' }}>
+            📎 File mẫu của biểu mẫu — tải về để tham khảo/chỉnh sửa rồi đính kèm bên dưới
+          </div>
+          {tpl.templateFiles.map((f: any) => (
+            <a key={f.key} onClick={async () => {
+              try {
+                const { data } = await api.get(`/templates/${tpl.id}/files/url`, { params: { key: f.key } });
+                window.open(data.url, '_blank');
+              } catch { message.error('Không tải được file mẫu'); }
+            }} style={{ display: 'inline-block', marginRight: 12, cursor: 'pointer' }}>
+              📄 {f.originalName}
+            </a>
+          ))}
+        </div>
+      ) : null}
+
       {/* Bảng tài liệu liên quan — header đỏ */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
         <span style={{ fontWeight: 600, borderBottom: '2px solid #E4002B', paddingBottom: 4 }}>Tài liệu liên quan đính kèm</span>

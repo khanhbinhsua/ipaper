@@ -1,12 +1,19 @@
 import { useState } from 'react';
-import { Card, Select, Input, Button, Table, Space, Tag, Modal, Form, message, Popconfirm } from 'antd';
-import { SearchOutlined, PlusOutlined, UnorderedListOutlined, EditOutlined, DeleteOutlined, FormOutlined } from '@ant-design/icons';
+import {
+  Card, Select, Input, Button, Table, Space, Tag, Modal, Form, message, Popconfirm, Upload, List,
+} from 'antd';
+import type { UploadRequestOption } from 'rc-upload/lib/interface';
+import {
+  SearchOutlined, PlusOutlined, UnorderedListOutlined, EditOutlined, DeleteOutlined,
+  FormOutlined, UploadOutlined, DownloadOutlined, FileTextOutlined,
+} from '@ant-design/icons';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../lib/api';
 import { useAuthStore } from '../store/auth.store';
 import UserSelect from '../components/UserSelect';
 
+interface TemplateFile { key: string; originalName: string; size: number; mimeType: string; }
 interface Template {
   id: string;
   name: string;
@@ -18,6 +25,7 @@ interface Template {
   assignedToId?: string;
   nextApproverIds?: string[];
   ccUserIds?: string[];
+  templateFiles?: TemplateFile[];
   isActive: boolean;
 }
 
@@ -27,6 +35,12 @@ const priorities = [
   { value: 'high', label: 'Cao' },
   { value: 'urgent', label: 'Khẩn' },
 ];
+
+function formatSize(n: number) {
+  if (n < 1024) return `${n} B`;
+  if (n < 1024 * 1024) return `${(n / 1024).toFixed(1)} KB`;
+  return `${(n / 1024 / 1024).toFixed(1)} MB`;
+}
 
 export default function TemplatesPage() {
   const navigate = useNavigate();
@@ -57,7 +71,6 @@ export default function TemplatesPage() {
   };
   const openEdit = (t: Template) => {
     setEditing(t);
-    // chuyển category (string) sang mảng vì Select mode=tags dùng array
     form.setFieldsValue({ ...t, category: t.category ? [t.category] : [] });
     setModalOpen(true);
   };
@@ -65,16 +78,18 @@ export default function TemplatesPage() {
 
   const saveMutation = useMutation({
     mutationFn: async (values: any) => {
-      // category từ Select mode="tags" là mảng — chuyển về string
       const payload = { ...values, category: Array.isArray(values.category) ? values.category[0] : values.category };
       if (editing) return (await api.patch(`/templates/${editing.id}`, payload)).data;
       return (await api.post('/templates', payload)).data;
     },
-    onSuccess: () => {
-      message.success(editing ? 'Đã cập nhật biểu mẫu' : 'Đã tạo biểu mẫu');
-      closeModal();
+    onSuccess: (saved: Template) => {
+      const wasCreating = !editing;
+      message.success(wasCreating ? 'Đã tạo biểu mẫu. Bạn có thể tải file mẫu lên ở phần dưới.' : 'Đã cập nhật biểu mẫu');
       list.refetch();
       cats.refetch();
+      // Sau khi tạo mới: chuyển modal sang chế độ Sửa để user upload file mẫu
+      if (wasCreating) setEditing(saved);
+      else setEditing(saved); // giữ mode edit, refresh file list
     },
     onError: (e: any) => message.error(e.response?.data?.message || 'Không lưu được biểu mẫu'),
   });
@@ -85,11 +100,51 @@ export default function TemplatesPage() {
     onError: (e: any) => message.error(e.response?.data?.message || 'Không xoá được biểu mẫu'),
   });
 
+  // Upload file mẫu qua axios (giữ auth token của api instance)
+  const doUpload = async (opt: UploadRequestOption) => {
+    if (!editing) return;
+    const fd = new FormData();
+    fd.append('file', opt.file as any);
+    try {
+      const { data } = await api.post(`/templates/${editing.id}/files`, fd);
+      setEditing(data);
+      opt.onSuccess?.(data as any);
+      message.success('Đã tải file mẫu lên');
+    } catch (e: any) {
+      opt.onError?.(e);
+      message.error(e.response?.data?.message || 'Không tải được file');
+    }
+  };
+
+  const removeFile = async (file: TemplateFile) => {
+    if (!editing) return;
+    try {
+      const { data } = await api.delete(`/templates/${editing.id}/files`, { params: { key: file.key } });
+      setEditing(data);
+      message.success('Đã xoá file mẫu');
+    } catch (e: any) {
+      message.error(e.response?.data?.message || 'Không xoá được file');
+    }
+  };
+
+  const downloadFile = async (tplId: string, file: TemplateFile) => {
+    try {
+      const { data } = await api.get(`/templates/${tplId}/files/url`, { params: { key: file.key } });
+      window.open(data.url, '_blank');
+    } catch {
+      message.error('Không lấy được link tải');
+    }
+  };
+
   const columns = [
     { title: 'Danh mục', dataIndex: 'category', render: (v: string) => <Tag color="blue">{v}</Tag> },
     { title: 'Tên biểu mẫu', dataIndex: 'name' },
     { title: 'Loại yêu cầu', dataIndex: 'docType', render: (v: string) => v || '—' },
     { title: 'Bộ phận', dataIndex: 'orgUnit', render: (v: string) => v || '—' },
+    {
+      title: 'File mẫu', dataIndex: 'templateFiles',
+      render: (v: TemplateFile[]) => v?.length ? <Tag color="green">{v.length} file</Tag> : '—',
+    },
     {
       title: 'Thao tác', key: 'act', width: isAdmin ? 340 : 200,
       render: (_: any, r: Template) => (
@@ -145,38 +200,31 @@ export default function TemplatesPage() {
         open={modalOpen}
         onCancel={closeModal}
         onOk={() => form.submit()}
-        okText={editing ? 'Cập nhật' : 'Tạo'}
-        cancelText="Hủy"
+        okText={editing ? 'Cập nhật' : 'Tạo & tiếp tục thêm file mẫu'}
+        cancelText="Đóng"
         confirmLoading={saveMutation.isPending}
         destroyOnHidden
         width={780}
       >
         <p style={{ color: '#666', marginTop: 0, marginBottom: 12, fontSize: 13 }}>
           Các trường điền ở đây sẽ được <b>điền sẵn tự động</b> khi nhân viên tạo hồ sơ từ biểu mẫu này.
-          Nhân viên chỉ cần chỉnh Tiêu đề rồi bấm Gửi duyệt.
         </p>
 
         <Form form={form} layout="vertical" onFinish={(v) => saveMutation.mutate(v)} initialValues={{ priority: 'normal' }}>
-          {/* Thông tin nhận diện biểu mẫu */}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-            <Form.Item name="category" label="Danh mục" rules={[{ required: true, message: 'Nhập danh mục' }]}
-              tooltip="VD: Nhân sự, Kế toán, Hành chính. Có thể chọn có sẵn hoặc gõ mới.">
-              <Select
-                placeholder="Chọn hoặc gõ danh mục mới"
+            <Form.Item name="category" label="Danh mục" rules={[{ required: true, message: 'Nhập danh mục' }]}>
+              <Select placeholder="Chọn hoặc gõ danh mục mới"
                 options={(cats.data ?? []).map((c) => ({ value: c, label: c }))}
-                showSearch mode="tags" maxCount={1}
-              />
+                showSearch mode="tags" maxCount={1} />
             </Form.Item>
             <Form.Item name="name" label="Tên biểu mẫu" rules={[{ required: true, message: 'Nhập tên biểu mẫu' }]}>
               <Input placeholder="VD: Đề xuất mua sắm văn phòng phẩm" />
             </Form.Item>
           </div>
 
-          {/* Preset điền sẵn cho hồ sơ */}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-            <Form.Item name="docType" label="Loại yêu cầu"
-              tooltip="VD: Đề xuất, Thanh toán, Trình ký...">
-              <Input placeholder="Sẽ điền sẵn ô Loại yêu cầu" />
+            <Form.Item name="docType" label="Loại yêu cầu">
+              <Input placeholder="VD: Đề xuất, Thanh toán..." />
             </Form.Item>
             <Form.Item name="orgUnit" label="Bộ phận">
               <Input placeholder="VD: Phòng Kế toán" />
@@ -187,18 +235,14 @@ export default function TemplatesPage() {
             <Select options={priorities} />
           </Form.Item>
 
-          <Form.Item name="description" label="Mô tả mẫu"
-            tooltip="Nội dung khung điền sẵn — nhân viên có thể chỉnh khi tạo hồ sơ">
-            <Input.TextArea rows={3} placeholder="VD: Kính gửi Ban Giám đốc, phòng ... kính đề xuất..." />
+          <Form.Item name="description" label="Mô tả mẫu">
+            <Input.TextArea rows={3} placeholder="Nội dung khung sẽ điền sẵn vào ô Mô tả của hồ sơ" />
           </Form.Item>
 
           <div style={{ borderTop: '1px dashed #eee', paddingTop: 12, marginTop: 4 }}>
             <b style={{ color: '#E4002B' }}>Luồng phê duyệt điền sẵn</b>
-            <p style={{ color: '#888', fontSize: 12, marginTop: 4, marginBottom: 8 }}>
-              Chọn sẵn người duyệt các cấp — nhân viên sẽ không phải chọn lại từng người khi tạo hồ sơ.
-            </p>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-              <Form.Item name="assignedToId" label="Chuyển tới 1 (bắt buộc)">
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginTop: 8 }}>
+              <Form.Item name="assignedToId" label="Chuyển tới 1">
                 <UserSelect placeholder="VD: Trưởng phòng" />
               </Form.Item>
               <Form.Item name={['nextApproverIds', 0]} label="Chuyển tới 2">
@@ -216,6 +260,46 @@ export default function TemplatesPage() {
             </Form.Item>
           </div>
         </Form>
+
+        {/* Phần upload file mẫu — chỉ hiện sau khi đã lưu biểu mẫu (có id) */}
+        <div style={{ borderTop: '1px dashed #eee', paddingTop: 12, marginTop: 4 }}>
+          <b style={{ color: '#E4002B' }}>File mẫu đính kèm</b>
+          <p style={{ color: '#888', fontSize: 12, marginTop: 4, marginBottom: 8 }}>
+            Tải lên file mẫu (Word, PDF, Excel...). Khi tạo hồ sơ, nhân viên thấy các file này để tải về dùng.
+          </p>
+          {!editing ? (
+            <p style={{ color: '#999', fontStyle: 'italic', fontSize: 13 }}>
+              Vui lòng bấm <b>“Tạo & tiếp tục thêm file mẫu”</b> ở trên trước, rồi mới tải file lên được.
+            </p>
+          ) : (
+            <>
+              <Upload customRequest={doUpload} showUploadList={false} multiple>
+                <Button icon={<UploadOutlined />}>Tải file mẫu lên</Button>
+              </Upload>
+              <List
+                size="small" style={{ marginTop: 12 }}
+                dataSource={editing.templateFiles ?? []}
+                locale={{ emptyText: 'Chưa có file mẫu' }}
+                renderItem={(f) => (
+                  <List.Item
+                    actions={[
+                      <Button key="d" size="small" icon={<DownloadOutlined />}
+                        onClick={() => downloadFile(editing.id, f)}>Tải</Button>,
+                      <Popconfirm key="x" title="Xoá file mẫu này?" okText="Xoá" cancelText="Hủy" okButtonProps={{ danger: true }}
+                        onConfirm={() => removeFile(f)}>
+                        <Button size="small" danger icon={<DeleteOutlined />} />
+                      </Popconfirm>,
+                    ]}
+                  >
+                    <FileTextOutlined style={{ marginRight: 8 }} />
+                    <b>{f.originalName}</b>
+                    <span style={{ marginLeft: 8, color: '#888', fontSize: 12 }}>{formatSize(f.size)}</span>
+                  </List.Item>
+                )}
+              />
+            </>
+          )}
+        </div>
       </Modal>
     </div>
   );

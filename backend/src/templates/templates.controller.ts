@@ -1,6 +1,8 @@
 import {
   Controller, Get, Post, Patch, Delete, Body, Param, Query, UseGuards, Request,
+  UploadedFile, UseInterceptors,
 } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { AdminGuard } from '../auth/admin.guard';
 import { TemplatesService } from './templates.service';
@@ -42,5 +44,27 @@ export class TemplatesController {
   @Delete(':id')
   remove(@Request() req, @Param('id') id: string) {
     return this.service.remove(req.user.tenantId, id);
+  }
+
+  // === File mẫu ===
+  // Upload file mẫu (Admin)
+  @UseGuards(AdminGuard)
+  @Post(':id/files')
+  @UseInterceptors(FileInterceptor('file'))
+  addFile(@Request() req, @Param('id') id: string, @UploadedFile() file: Express.Multer.File) {
+    return this.service.addFile(req.user.tenantId, id, file);
+  }
+
+  // Xoá file mẫu (Admin). Query param `key` = key file trên MinIO
+  @UseGuards(AdminGuard)
+  @Delete(':id/files')
+  removeFile(@Request() req, @Param('id') id: string, @Query('key') key: string) {
+    return this.service.removeFile(req.user.tenantId, id, key);
+  }
+
+  // Lấy link tải file mẫu (mọi user đã đăng nhập)
+  @Get(':id/files/url')
+  fileUrl(@Request() req, @Param('id') id: string, @Query('key') key: string) {
+    return this.service.fileDownloadUrl(req.user.tenantId, id, key);
   }
 }
