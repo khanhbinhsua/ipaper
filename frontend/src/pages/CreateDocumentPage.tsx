@@ -81,19 +81,19 @@ export default function CreateDocumentPage() {
             <Form.Item name="dueDate" label="Thời hạn thực hiện">
               <DatePicker style={{ width: '100%' }} format="DD/MM/YYYY" />
             </Form.Item>
-            <Form.Item name="assignedToId" label="Duyệt I" required rules={[{ required: true, message: 'Chọn người duyệt cấp 1' }]}
+            <Form.Item name="assignedToId" label="Chuyển tới 1" required rules={[{ required: true, message: 'Chọn người duyệt cấp 1' }]}
               tooltip="Người duyệt cấp 1 — hồ sơ được chuyển tới duyệt trước (VD: Trưởng phòng)">
               <UserSelect placeholder="VD: Trưởng phòng — tìm theo tên/email" />
             </Form.Item>
-            <Form.Item name="approver2" label="Duyệt II"
+            <Form.Item name="approver2" label="Chuyển tới 2"
               tooltip="Người duyệt cấp 2 (tùy chọn) — chỉ hiện Nhân viên Phòng Kế toán">
               <UserSelect role="staff" orgUnit="Phòng Kế toán" placeholder="Chỉ chọn Nhân viên Phòng Kế toán" />
             </Form.Item>
-            <Form.Item name="approver3" label="Duyệt III"
+            <Form.Item name="approver3" label="Chuyển tới 3"
               tooltip="Người duyệt cấp 3 (tùy chọn) — chỉ hiện Trưởng phòng Kế toán">
               <UserSelect role="manager" orgUnit="Phòng Kế toán" placeholder="Chỉ chọn Trưởng phòng Kế toán" />
             </Form.Item>
-            <Form.Item name="approver4" label="Duyệt IV"
+            <Form.Item name="approver4" label="Chuyển tới 4"
               tooltip="Người duyệt cấp 4 (tùy chọn) — BẮT BUỘC là Ban Giám đốc; chỉ hiện người thuộc Ban Giám đốc">
               <UserSelect role="director" placeholder="Chỉ chọn Ban Giám đốc" />
             </Form.Item>
