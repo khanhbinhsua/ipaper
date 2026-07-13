@@ -67,6 +67,17 @@ export class ApprovalPdfService {
     const font = await pdf.embedFont(this.fontReg!, { subset: true });
     const bold = await pdf.embedFont(this.fontBold!, { subset: true });
 
+    // Đóng dấu MÃ HỒ SƠ lên góc trên-phải MỖI TRANG GỐC đã trình (trước khi thêm trang lịch sử)
+    if (doc.code) {
+      const stamp = `Mã hồ sơ: ${doc.code}`;
+      const sSize = 9;
+      for (const pg of pdf.getPages()) {
+        const sz = pg.getSize();
+        const w = bold.widthOfTextAtSize(stamp, sSize);
+        pg.drawText(stamp, { x: sz.width - w - 20, y: sz.height - 22, size: sSize, font: bold, color: RED });
+      }
+    }
+
     const A4: [number, number] = [595, 842];
     const margin = 50;
     let page = pdf.addPage(A4);
