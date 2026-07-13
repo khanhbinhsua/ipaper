@@ -36,7 +36,13 @@ export class Document {
   tenantId: string;
 
   @Column({ nullable: true })
-  code: string; // mã hồ sơ, vd I2606151312110
+  code: string; // mã hồ sơ: <Phòng ban>-<YYYYMMDD tạo>-<STT>, vd KT-20260619-0007
+
+  @Column({ default: 0 })
+  seq: number; // số thứ tự hồ sơ trong tổ chức (chạy tăng)
+
+  @Column({ type: 'timestamp', nullable: true })
+  completedAt: Date; // ngày hoàn thành (set khi bấm Hoàn thành)
 
   @Column()
   title: string;

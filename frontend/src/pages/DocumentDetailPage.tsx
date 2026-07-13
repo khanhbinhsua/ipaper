@@ -119,6 +119,8 @@ export default function DocumentDetailPage() {
 
       <Card title="Thông tin yêu cầu" style={{ marginBottom: 16 }}>
         <Descriptions column={2} bordered size="small">
+          <Descriptions.Item label="Mã hồ sơ"><b style={{ color: '#E4002B' }}>{doc.code || '—'}</b></Descriptions.Item>
+          <Descriptions.Item label="Ngày hoàn thành">{doc.completedAt ? vnTime(doc.completedAt) : '—'}</Descriptions.Item>
           <Descriptions.Item label="Tiêu đề">{doc.title}</Descriptions.Item>
           <Descriptions.Item label="Bộ phận">{doc.orgUnit}</Descriptions.Item>
           <Descriptions.Item label="Loại yêu cầu">{doc.docType}</Descriptions.Item>

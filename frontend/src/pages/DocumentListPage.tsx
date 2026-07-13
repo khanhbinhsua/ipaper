@@ -54,6 +54,7 @@ export default function DocumentListPage({ box }: { box: Box }) {
         </Space>
       ),
     },
+    { title: 'Mã hồ sơ', dataIndex: 'code', render: (v: string) => <b style={{ color: '#E4002B' }}>{v || '—'}</b> },
     { title: 'Tiêu đề', dataIndex: 'title', sorter: true },
     { title: 'Loại yêu cầu', dataIndex: 'docType' },
     { title: 'Bộ phận', dataIndex: 'orgUnit' },
@@ -71,6 +72,10 @@ export default function DocumentListPage({ box }: { box: Box }) {
       sorter: true,
     },
     {
+      title: 'Ngày hoàn thành', dataIndex: 'completedAt',
+      render: (v: string) => (v ? vnTime(v, 'DD/MM/YYYY HH:mm') : '—'),
+    },
+    {
       title: 'Trạng thái', dataIndex: 'status',
       render: (v: string) => <Tag color={statusColors[v]}>{statusLabels[v] ?? v}</Tag>,
     },
@@ -83,7 +88,7 @@ export default function DocumentListPage({ box }: { box: Box }) {
       <Card size="small" style={{ marginBottom: 16 }}>
         <Space wrap>
           <Input
-            placeholder="Tìm kiếm theo tiêu đề/mô tả"
+            placeholder="Tìm theo mã hồ sơ / tiêu đề / mô tả"
             value={keyword}
             onChange={(e) => setKeyword(e.target.value)}
             style={{ width: 260 }}

@@ -67,14 +67,19 @@ export class ApprovalPdfService {
     const font = await pdf.embedFont(this.fontReg!, { subset: true });
     const bold = await pdf.embedFont(this.fontBold!, { subset: true });
 
-    // Đóng dấu MÃ HỒ SƠ lên góc trên-phải MỖI TRANG GỐC đã trình (trước khi thêm trang lịch sử)
+    // Đóng dấu MÃ HỒ SƠ + NGÀY HOÀN THÀNH lên góc trên-phải MỖI TRANG GỐC (trước khi thêm trang lịch sử)
     if (doc.code) {
-      const stamp = `Mã hồ sơ: ${doc.code}`;
+      const line1 = `Mã hồ sơ: ${doc.code}`;
+      const line2 = doc.completedAt ? `Hoàn thành: ${this.fmt(doc.completedAt)}` : '';
       const sSize = 9;
       for (const pg of pdf.getPages()) {
         const sz = pg.getSize();
-        const w = bold.widthOfTextAtSize(stamp, sSize);
-        pg.drawText(stamp, { x: sz.width - w - 20, y: sz.height - 22, size: sSize, font: bold, color: RED });
+        const w1 = bold.widthOfTextAtSize(line1, sSize);
+        pg.drawText(line1, { x: sz.width - w1 - 20, y: sz.height - 22, size: sSize, font: bold, color: RED });
+        if (line2) {
+          const w2 = font.widthOfTextAtSize(line2, 8);
+          pg.drawText(line2, { x: sz.width - w2 - 20, y: sz.height - 34, size: 8, font, color: rgb(0.3, 0.3, 0.3) });
+        }
       }
     }
 

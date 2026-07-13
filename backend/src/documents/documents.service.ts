@@ -27,10 +27,16 @@ export class DocumentsService {
     // Hàng đợi người duyệt cấp 2..5: ưu tiên nextApproverIds; fallback secondApproverId (cũ)
     const queue = (dto.nextApproverIds ?? (dto.secondApproverId ? [dto.secondApproverId] : []))
       .filter(Boolean);
+
+    // Số thứ tự chạy tăng trong tổ chức
+    const seq = (await this.docRepo.count({ where: { tenantId } })) + 1;
+    const code = this.genCode(dto.orgUnit, seq);
+
     const doc = this.docRepo.create({
       ...dto,
       tenantId,
-      code: this.genCode(),
+      code,
+      seq,
       createdById: userId,
       status: DocumentStatus.DRAFT,
       ccUserIds: dto.ccUserIds ?? [],
@@ -39,13 +45,28 @@ export class DocumentsService {
     return this.docRepo.save(doc);
   }
 
-  // Sinh mã hồ sơ: I + yymmdd + 7 số (vd I2606151312110)
-  private genCode(): string {
+  // Mã hồ sơ: <Phòng ban>-<YYYYMMDD ngày tạo>-<STT 4 chữ số>. Vd: KT-20260619-0007
+  private genCode(orgUnit: string | undefined, seq: number): string {
     const d = new Date();
     const p = (n: number) => String(n).padStart(2, '0');
-    const ymd = `${String(d.getFullYear()).slice(2)}${p(d.getMonth() + 1)}${p(d.getDate())}`;
-    const rand = String(Math.floor(Math.random() * 9000000) + 1000000);
-    return `I${ymd}${rand}`;
+    const ymd = `${d.getFullYear()}${p(d.getMonth() + 1)}${p(d.getDate())}`;
+    return `${this.deptCode(orgUnit)}-${ymd}-${String(seq).padStart(4, '0')}`;
+  }
+
+  // Viết tắt tên phòng ban: bỏ tiền tố (Phòng/Ban/Trung tâm/Bộ phận), lấy chữ cái đầu mỗi từ.
+  // "Phòng Kế toán" -> "KT", "Phòng Kinh doanh" -> "KD", "Ban Nhân sự" -> "NS". Rỗng -> "HS".
+  private deptCode(orgUnit?: string): string {
+    if (!orgUnit) return 'HS';
+    const cleaned = orgUnit
+      .normalize('NFC')
+      .replace(/\b(Phòng|Ban|Trung tâm|Bộ phận|Khối)\b/gi, '')
+      .trim();
+    const words = cleaned.split(/\s+/).filter(Boolean);
+    if (!words.length) return 'HS';
+    // Bỏ dấu để lấy chữ cái đầu ASCII
+    const noAccent = (s: string) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/đ/gi, 'd');
+    const abbr = words.map((w) => noAccent(w).charAt(0).toUpperCase()).join('');
+    return abbr || 'HS';
   }
 
   // Gửi duyệt — chuyển từ nháp sang pending
@@ -135,7 +156,8 @@ export class DocumentsService {
       qb.andWhere(
         new Brackets((w) => {
           w.where('d.title ILIKE :kw', { kw: `%${dto.keyword}%` })
-            .orWhere('d.description ILIKE :kw', { kw: `%${dto.keyword}%` });
+            .orWhere('d.description ILIKE :kw', { kw: `%${dto.keyword}%` })
+            .orWhere('d.code ILIKE :kw', { kw: `%${dto.keyword}%` });
         }),
       );
     }
@@ -295,6 +317,7 @@ export class DocumentsService {
     }
 
     doc.status = DocumentStatus.COMPLETED;
+    doc.completedAt = new Date();
     doc.assignedToId = null as any;
     await this.docRepo.save(doc);
     await this.logApproval(docId, userId, ApprovalAction.COMPLETE, doc.currentStep, 'Hoàn thành hồ sơ');
