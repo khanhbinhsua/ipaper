@@ -14,25 +14,26 @@ interface Props {
   onChange?: (value: any) => void;
   mode?: 'multiple';
   placeholder?: string;
-  role?: string; // lọc theo vai trò (vd 'director' để chỉ hiện Ban Giám đốc)
+  role?: string;    // lọc theo vai trò (vd 'director')
+  orgUnit?: string; // lọc theo phòng ban (vd 'Phòng Kế toán')
 }
 
 // Ô chọn người dùng có tìm kiếm theo tên/email (dùng cho Chuyển tới, Người liên quan, Người duyệt)
-export default function UserSelect({ value, onChange, mode, placeholder, role }: Props) {
+export default function UserSelect({ value, onChange, mode, placeholder, role, orgUnit }: Props) {
   const [options, setOptions] = useState<UserOption[]>([]);
   const [loading, setLoading] = useState(false);
 
   const fetchUsers = async (q?: string) => {
     setLoading(true);
     try {
-      const { data } = await api.get('/users/search', { params: { q, role } });
+      const { data } = await api.get('/users/search', { params: { q, role, orgUnit } });
       setOptions(data);
     } finally {
       setLoading(false);
     }
   };
 
-  useEffect(() => { fetchUsers(); }, [role]);
+  useEffect(() => { fetchUsers(); }, [role, orgUnit]);
 
   let timer: ReturnType<typeof setTimeout>;
   const onSearch = (q: string) => {

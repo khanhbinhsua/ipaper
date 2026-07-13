@@ -24,10 +24,11 @@ export class UsersService {
   }
 
   // Tìm người dùng theo tên/email/username để chọn (chuyển tới, người liên quan, người duyệt)
-  // role: lọc theo vai trò (vd 'director' để chỉ hiện Ban Giám đốc)
-  search(tenantId: string, keyword?: string, role?: string) {
+  // role: lọc theo vai trò (vd 'director'); orgUnit: lọc theo phòng ban (vd 'Phòng Kế toán')
+  search(tenantId: string, keyword?: string, role?: string, orgUnit?: string) {
     const base: any = { tenantId, isActive: true };
     if (role) base.role = role;
+    if (orgUnit) base.orgUnit = ILike(orgUnit); // khớp không phân biệt hoa/thường
     const where = keyword
       ? [
           { ...base, fullName: ILike(`%${keyword}%`) },

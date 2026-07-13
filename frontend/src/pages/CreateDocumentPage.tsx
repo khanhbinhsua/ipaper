@@ -86,12 +86,12 @@ export default function CreateDocumentPage() {
               <UserSelect placeholder="VD: Trưởng phòng — tìm theo tên/email" />
             </Form.Item>
             <Form.Item name="approver2" label="Duyệt II"
-              tooltip="Người duyệt cấp 2 (tùy chọn) — sau khi cấp 1 duyệt, tự chuyển tới (VD: Giám đốc)">
-              <UserSelect placeholder="Để trống nếu chỉ 1 cấp" />
+              tooltip="Người duyệt cấp 2 (tùy chọn) — chỉ hiện Nhân viên Phòng Kế toán">
+              <UserSelect role="staff" orgUnit="Phòng Kế toán" placeholder="Chỉ chọn Nhân viên Phòng Kế toán" />
             </Form.Item>
             <Form.Item name="approver3" label="Duyệt III"
-              tooltip="Người duyệt cấp 3 (tùy chọn) — duyệt sau cấp 2">
-              <UserSelect placeholder="Để trống nếu không có" />
+              tooltip="Người duyệt cấp 3 (tùy chọn) — chỉ hiện Trưởng phòng Kế toán">
+              <UserSelect role="manager" orgUnit="Phòng Kế toán" placeholder="Chỉ chọn Trưởng phòng Kế toán" />
             </Form.Item>
             <Form.Item name="approver4" label="Duyệt IV"
               tooltip="Người duyệt cấp 4 (tùy chọn) — BẮT BUỘC là Ban Giám đốc; chỉ hiện người thuộc Ban Giám đốc">
