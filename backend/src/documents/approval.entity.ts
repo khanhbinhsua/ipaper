@@ -12,6 +12,7 @@ export enum ApprovalAction {
   RETURN = 'return',
   SAVE_DRAFT = 'save_draft',
   COMPLETE = 'complete',
+  CONSULT = 'consult',
 }
 
 @Entity('approvals')

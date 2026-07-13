@@ -21,6 +21,11 @@ export class DocumentsController {
     return this.service.submit(req.user.tenantId, req.user.id, id);
   }
 
+  @Post(':id/consult')
+  consult(@Request() req, @Param('id') id: string) {
+    return this.service.consult(req.user.tenantId, req.user.id, id);
+  }
+
   @Post(':id/approve')
   approve(@Request() req, @Param('id') id: string, @Body() body: { comment?: string; nextAssigneeId?: string }) {
     return this.service.approve(req.user.tenantId, req.user.id, id, body.comment, body.nextAssigneeId);

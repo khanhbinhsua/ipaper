@@ -44,11 +44,16 @@ export default function CreateDocumentPage() {
 
   const handleSaveDraft = async () => { await persist(); message.success('Đã lưu nháp'); navigate('/draft'); };
   const handleConsult = async () => {
+    const values = form.getFieldsValue();
+    if (!values.ccUserIds?.length) {
+      message.warning('Vui lòng chọn "Người liên quan" để gửi lấy ý kiến');
+      return;
+    }
     const doc = await persist();
-    // Lấy ý kiến = cũng gửi hồ sơ tới người ở "Chuyển tới 1" để họ xem/cho ý kiến
-    await api.post(`/documents/${doc.id}/submit`);
-    message.success('Đã gửi lấy ý kiến tới người duyệt');
-    navigate('/outbox');
+    // Lấy ý kiến: chỉ gửi thông báo cho Người liên quan (CC) — hồ sơ VẪN LÀ NHÁP
+    await api.post(`/documents/${doc.id}/consult`);
+    message.success('Đã gửi thông báo lấy ý kiến tới người liên quan. Hồ sơ vẫn ở nháp.');
+    navigate('/draft');
   };
   const handleSubmit = async () => {
     const doc = await persist();
