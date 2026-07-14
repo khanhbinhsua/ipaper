@@ -1,6 +1,6 @@
 import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, ILike } from 'typeorm';
+import { Repository, ILike, In } from 'typeorm';
 import * as bcrypt from 'bcrypt';
 import { User, UserRole } from './user.entity';
 
@@ -24,8 +24,15 @@ export class UsersService {
   }
 
   // Tìm người dùng theo tên/email/username để chọn (chuyển tới, người liên quan, người duyệt)
-  // role: lọc theo vai trò (vd 'director'); orgUnit: lọc theo phòng ban (vd 'Phòng Kế toán')
-  search(tenantId: string, keyword?: string, role?: string, orgUnit?: string) {
+  // role: lọc theo vai trò (vd 'director'); orgUnit: lọc theo phòng ban;
+  // ids: lấy đúng các user theo id (dùng để hiển thị lại tên cho value đã chọn từ trước)
+  search(tenantId: string, keyword?: string, role?: string, orgUnit?: string, ids?: string) {
+    // Ưu tiên: nếu client cần lấy user theo id → không giới hạn 20 và bỏ qua role/orgUnit filter
+    if (ids) {
+      const idList = ids.split(',').map((s) => s.trim()).filter(Boolean);
+      if (!idList.length) return [];
+      return this.repo.find({ where: { id: In(idList), tenantId }, select: SAFE_FIELDS });
+    }
     const base: any = { tenantId, isActive: true };
     if (role) base.role = role;
     if (orgUnit) base.orgUnit = ILike(orgUnit); // khớp không phân biệt hoa/thường

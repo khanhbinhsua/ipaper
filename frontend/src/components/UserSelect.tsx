@@ -33,13 +33,30 @@ export default function UserSelect({ value, onChange, mode, placeholder, role, o
     setLoading(true);
     try {
       const { data } = await api.get('/users/search', { params: { q, role, orgUnit } });
-      setOptions(data);
+      setOptions((prev) => mergeById(prev, data));
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => { fetchUsers(); }, [role, orgUnit]);
+
+  // Khi có value nhưng chưa có option tương ứng (vd điền sẵn từ biểu mẫu, hoặc user không nằm trong 20 kết quả đầu)
+  // → gọi API lấy user theo ids để hiển thị đúng TÊN thay vì UUID
+  useEffect(() => {
+    const ids = (Array.isArray(value) ? value : value ? [value] : []).filter(Boolean);
+    if (!ids.length) return;
+    const known = new Set(options.map((o) => o.id));
+    const missing = ids.filter((id) => !known.has(id));
+    if (!missing.length) return;
+    (async () => {
+      try {
+        const { data } = await api.get('/users/search', { params: { ids: missing.join(',') } });
+        setOptions((prev) => mergeById(prev, data));
+      } catch { /* ignore */ }
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [value]);
 
   let timer: ReturnType<typeof setTimeout>;
   const onSearch = (q: string) => {
@@ -84,4 +101,11 @@ export default function UserSelect({ value, onChange, mode, placeholder, role, o
       }}
     />
   );
+}
+
+// Trộn 2 danh sách user, bỏ trùng theo id (giữ bản mới nhất)
+function mergeById(prev: UserOption[], next: UserOption[]): UserOption[] {
+  const map = new Map(prev.map((u) => [u.id, u]));
+  for (const u of next) map.set(u.id, u);
+  return Array.from(map.values());
 }
