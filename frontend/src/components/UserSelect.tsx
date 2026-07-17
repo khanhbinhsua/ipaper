@@ -1,6 +1,15 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Select, Spin } from 'antd';
 import { api } from '../lib/api';
+
+// Chuẩn hoá chuỗi để so sánh không phân biệt hoa/thường & dấu tiếng Việt.
+// VD: "Toàn" và "toan" đều thành "toan".
+const normalize = (s: string) =>
+  (s || '')
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[̀-ͯ]/g, '')
+    .replace(/đ/g, 'd');
 
 interface UserOption {
   id: string;
@@ -28,6 +37,7 @@ const ROLE_LABELS: Record<string, string> = {
 export default function UserSelect({ value, onChange, mode, placeholder, role, orgUnit }: Props) {
   const [options, setOptions] = useState<UserOption[]>([]);
   const [loading, setLoading] = useState(false);
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const fetchUsers = async (q?: string) => {
     setLoading(true);
@@ -58,10 +68,10 @@ export default function UserSelect({ value, onChange, mode, placeholder, role, o
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [value]);
 
-  let timer: ReturnType<typeof setTimeout>;
+  // Server-side search: debounce 300ms để bổ sung kết quả khi người tìm không nằm trong 20 user đầu
   const onSearch = (q: string) => {
-    clearTimeout(timer);
-    timer = setTimeout(() => fetchUsers(q), 300);
+    if (timerRef.current) clearTimeout(timerRef.current);
+    timerRef.current = setTimeout(() => fetchUsers(q), 300);
   };
 
   return (
@@ -72,7 +82,15 @@ export default function UserSelect({ value, onChange, mode, placeholder, role, o
       value={value}
       onChange={onChange}
       onSearch={onSearch}
-      filterOption={false}
+      // Lọc client-side trên các option đang có: khớp không phân biệt hoa/thường & dấu tiếng Việt
+      filterOption={(input, option) => {
+        if (!input) return true;
+        const q = normalize(input);
+        const u = (option as any)?.u as UserOption | undefined;
+        if (!u) return true;
+        const hay = normalize(`${u.username} ${u.fullName} ${u.email} ${u.orgUnit}`);
+        return hay.includes(q);
+      }}
       loading={loading}
       placeholder={placeholder || 'Tìm theo tên hoặc email'}
       notFoundContent={loading ? <Spin size="small" /> : 'Không tìm thấy'}
