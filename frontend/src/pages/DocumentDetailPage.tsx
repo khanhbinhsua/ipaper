@@ -151,6 +151,13 @@ export default function DocumentDetailPage() {
                       children: (
                         <div>
                           <b>{actionLabels[a.action]}</b> — bước {a.step}
+                          {a.actor && (
+                            <div style={{ marginTop: 2, fontSize: 13 }}>
+                              👤 <b>{a.actor.fullName || a.actor.username}</b>
+                              {a.actor.orgUnit && <span style={{ color: '#666' }}> — {a.actor.orgUnit}</span>}
+                              {a.actor.email && <span style={{ color: '#999', fontSize: 12 }}> ({a.actor.email})</span>}
+                            </div>
+                          )}
                           <div style={{ color: '#888', fontSize: 12 }}>
                             {vnTime(a.createdAt)}
                           </div>

@@ -101,7 +101,7 @@ export class DocumentsService {
     const doc = await this.docRepo.findOne({
       where: { id: docId, tenantId },
       relations: {
-        attachments: true, approvals: true, createdBy: true,
+        attachments: true, approvals: { actor: true }, createdBy: true,
         assignedTo: true, workflow: true,
       },
     });
