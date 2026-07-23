@@ -14,6 +14,7 @@ import ProfilePage from './pages/ProfilePage';
 import ChangePasswordPage from './pages/ChangePasswordPage';
 import TemplatesPage from './pages/TemplatesPage';
 import AdminUsersPage from './pages/AdminUsersPage';
+import AssignmentsPage from './pages/AssignmentsPage';
 import { useAuthStore } from './store/auth.store';
 
 function PrivateRoute({ children }: { children: ReactNode }) {
@@ -50,6 +51,8 @@ export default function App() {
               <Route path="/create" element={<CreateDocumentPage />} />
               <Route path="/documents/:id" element={<DocumentDetailPage />} />
               <Route path="/templates" element={<TemplatesPage />} />
+              <Route path="/tasks" element={<AssignmentsPage type="task" />} />
+              <Route path="/collab" element={<AssignmentsPage type="collab" />} />
               <Route path="/admin/users" element={<AdminUsersPage />} />
               <Route path="/profile" element={<ProfilePage />} />
               <Route path="/change-password" element={<ChangePasswordPage />} />

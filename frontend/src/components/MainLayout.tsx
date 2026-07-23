@@ -3,6 +3,7 @@ import { Layout, Menu, Avatar, Dropdown, Badge, List, Button, Empty, Drawer, Gri
 import {
   DashboardOutlined, InboxOutlined, SendOutlined, FileTextOutlined,
   TeamOutlined, SearchOutlined, PlusCircleOutlined, FormOutlined,
+  UserSwitchOutlined, ClusterOutlined,
   BellOutlined, UserOutlined, LogoutOutlined, KeyOutlined,
   SettingOutlined, MenuOutlined,
 } from '@ant-design/icons';
@@ -22,6 +23,8 @@ const menuItems = [
   { key: '/search', icon: <SearchOutlined />, label: 'Tìm hồ sơ' },
   { key: '/create', icon: <PlusCircleOutlined />, label: 'Tạo yêu cầu' },
   { key: '/templates', icon: <FormOutlined />, label: 'Tạo yêu cầu theo mẫu' },
+  { key: '/tasks', icon: <UserSwitchOutlined />, label: 'Giao việc' },
+  { key: '/collab', icon: <ClusterOutlined />, label: 'Phối hợp' },
 ];
 
 // Mục chỉ dành cho admin
