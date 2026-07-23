@@ -145,16 +145,38 @@ export default function AssignmentsPage({ type }: Props) {
   };
 
   const columns = [
-    { title: 'Mã', dataIndex: 'code', render: (v: string) => <b style={{ color: '#E4002B' }}>{v}</b>, width: 160 },
+    { title: 'Mã', dataIndex: 'code', render: (v: string) => <b style={{ color: '#E4002B' }}>{v}</b>, width: 150 },
     { title: 'Tiêu đề', dataIndex: 'title' },
     ...(isTask ? [] : [
       { title: 'Từ bộ phận', dataIndex: 'fromOrgUnit', render: (v: string) => v || '—' },
-      { title: 'Tới bộ phận', dataIndex: 'toOrgUnit', render: (v: string) => v || '—' },
+      {
+        title: 'Tới bộ phận',
+        render: (_: any, r: any) => {
+          if (r.toOrgUnits && r.toOrgUnits.length > 0) {
+            return (
+              <Space size={[0, 4]} wrap>
+                {r.toOrgUnits.map((u: string) => (
+                  <Tag key={u} color="blue">{u}</Tag>
+                ))}
+              </Space>
+            );
+          }
+          return r.toOrgUnit ? <Tag color="blue">{r.toOrgUnit}</Tag> : '—';
+        },
+      },
     ]),
     {
       title: tab === 'assigned' ? 'Người nhận' : 'Người giao',
       render: (_: any, r: any) => {
-        const u = tab === 'assigned' ? r.assignee : r.assigner;
+        if (tab === 'assigned') {
+          if (r.assigneeIds && r.assigneeIds.length > 1) {
+            const first = r.assignee ? (r.assignee.fullName || r.assignee.username) : 'Nhiều người';
+            return <span>{first} <Tag color="magenta">+{r.assigneeIds.length - 1} người</Tag></span>;
+          }
+          const u = r.assignee;
+          return u ? `${u.fullName || u.username}${u.orgUnit ? ' (' + u.orgUnit + ')' : ''}` : '—';
+        }
+        const u = r.assigner;
         return u ? `${u.fullName || u.username}${u.orgUnit ? ' (' + u.orgUnit + ')' : ''}` : '—';
       },
     },
@@ -164,19 +186,22 @@ export default function AssignmentsPage({ type }: Props) {
     { title: 'Hạn', dataIndex: 'dueDate', render: (v: string) => v ? vnTime(v, 'DD/MM/YYYY') : '—' },
     {
       title: 'Thao tác', key: 'act', width: 200,
-      render: (_: any, r: any) => (
-        <Space>
-          <Button size="small" icon={<EyeOutlined />} onClick={() => setDetailId(r.id)}>Xem</Button>
-          {r.assigneeId === user?.id && r.status !== 'done' && r.status !== 'cancelled' && (
-            <Button size="small" type="primary" onClick={() => { setStatusItem(r); statusForm.setFieldsValue({ status: r.status, progressNote: r.progressNote }); }}>Cập nhật</Button>
-          )}
-          {r.assignerId === user?.id && (
-            <Popconfirm title="Xoá?" onConfirm={() => removeMutation.mutate(r.id)}>
-              <Button size="small" danger icon={<DeleteOutlined />} />
-            </Popconfirm>
-          )}
-        </Space>
-      ),
+      render: (_: any, r: any) => {
+        const isRecipient = r.assigneeId === user?.id || (Array.isArray(r.assigneeIds) && r.assigneeIds.includes(user?.id));
+        return (
+          <Space>
+            <Button size="small" icon={<EyeOutlined />} onClick={() => setDetailId(r.id)}>Xem</Button>
+            {isRecipient && r.status !== 'done' && r.status !== 'cancelled' && (
+              <Button size="small" type="primary" onClick={() => { setStatusItem(r); statusForm.setFieldsValue({ status: r.status, progressNote: r.progressNote }); }}>Cập nhật</Button>
+            )}
+            {r.assignerId === user?.id && (
+              <Popconfirm title="Xoá?" onConfirm={() => removeMutation.mutate(r.id)}>
+                <Button size="small" danger icon={<DeleteOutlined />} />
+              </Popconfirm>
+            )}
+          </Space>
+        );
+      },
     },
   ];
 
@@ -219,16 +244,16 @@ export default function AssignmentsPage({ type }: Props) {
           <Form.Item name="description" label="Nội dung">
             <Input.TextArea rows={4} placeholder="Mô tả chi tiết yêu cầu" />
           </Form.Item>
-          <Form.Item name="assigneeId" label="Người nhận" rules={[{ required: true, message: 'Chọn người nhận' }]}>
-            <UserSelect placeholder="Tìm theo tên/email" />
+          <Form.Item name="assigneeIds" label="Người nhận (có thể chọn nhiều)" rules={[{ required: true, message: 'Chọn ít nhất 1 người nhận' }]}>
+            <UserSelect mode="multiple" placeholder="Tìm theo tên/email để thêm người nhận" />
           </Form.Item>
           {!isTask && (
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
               <Form.Item name="fromOrgUnit" label="Từ bộ phận">
                 <Input placeholder="VD: Phòng Nhân sự" />
               </Form.Item>
-              <Form.Item name="toOrgUnit" label="Tới bộ phận">
-                <Input placeholder="VD: Phòng Kế toán" />
+              <Form.Item name="toOrgUnits" label="Tới các bộ phận (gõ Enter để thêm)">
+                <Select mode="tags" placeholder="VD: Phòng Kế toán, Phòng Kế hoạch" style={{ width: '100%' }} />
               </Form.Item>
             </div>
           )}
@@ -280,16 +305,38 @@ export default function AssignmentsPage({ type }: Props) {
         open={!!detailId}
         onCancel={() => setDetailId(null)}
         footer={null}
-        width={720}
+        width={750}
       >
         {detail.data && (
           <Descriptions column={2} bordered size="small">
             <Descriptions.Item label="Người giao">{detail.data.assigner?.fullName || detail.data.assigner?.username}</Descriptions.Item>
-            <Descriptions.Item label="Người nhận">{detail.data.assignee?.fullName || detail.data.assignee?.username}</Descriptions.Item>
+            <Descriptions.Item label="Người nhận" span={detail.data.assignees?.length > 1 ? 2 : 1}>
+              {detail.data.assignees && detail.data.assignees.length > 0 ? (
+                <Space wrap size={[0, 4]}>
+                  {detail.data.assignees.map((u: any) => (
+                    <Tag key={u.id} color="cyan">
+                      {u.fullName || u.username}{u.orgUnit ? ` (${u.orgUnit})` : ''}
+                    </Tag>
+                  ))}
+                </Space>
+              ) : (
+                detail.data.assignee?.fullName || detail.data.assignee?.username || '—'
+              )}
+            </Descriptions.Item>
             {!isTask && (
               <>
                 <Descriptions.Item label="Từ bộ phận">{detail.data.fromOrgUnit || '—'}</Descriptions.Item>
-                <Descriptions.Item label="Tới bộ phận">{detail.data.toOrgUnit || '—'}</Descriptions.Item>
+                <Descriptions.Item label="Tới bộ phận">
+                  {detail.data.toOrgUnits && detail.data.toOrgUnits.length > 0 ? (
+                    <Space wrap size={[0, 4]}>
+                      {detail.data.toOrgUnits.map((u: string) => (
+                        <Tag key={u} color="blue">{u}</Tag>
+                      ))}
+                    </Space>
+                  ) : (
+                    detail.data.toOrgUnit || '—'
+                  )}
+                </Descriptions.Item>
               </>
             )}
             <Descriptions.Item label="Ưu tiên"><Tag color={priorityColors[detail.data.priority]}>{priorityLabels[detail.data.priority]}</Tag></Descriptions.Item>
@@ -305,7 +352,7 @@ export default function AssignmentsPage({ type }: Props) {
           <div style={{ marginTop: 16 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
               <b style={{ color: '#E4002B' }}>📎 File đính kèm</b>
-              {(detail.data.assignerId === user?.id || detail.data.assigneeId === user?.id) && (
+              {((detail.data.assigneeIds && detail.data.assigneeIds.includes(user?.id)) || detail.data.assigneeId === user?.id || detail.data.assignerId === user?.id) && (
                 <Upload customRequest={uploadToDetail} showUploadList={false} multiple>
                   <Button size="small" icon={<UploadOutlined />}>Thêm file</Button>
                 </Upload>
@@ -316,7 +363,7 @@ export default function AssignmentsPage({ type }: Props) {
               dataSource={(detail.data.attachments ?? []) as Attachment[]}
               locale={{ emptyText: 'Chưa có file đính kèm' }}
               renderItem={(f) => {
-                const canDelete = detail.data.assignerId === user?.id || detail.data.assigneeId === user?.id;
+                const canDelete = (detail.data.assigneeIds && detail.data.assigneeIds.includes(user?.id)) || detail.data.assigneeId === user?.id || detail.data.assignerId === user?.id;
                 return (
                   <List.Item
                     actions={[

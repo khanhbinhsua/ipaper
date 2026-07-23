@@ -53,12 +53,16 @@ export class Assignment {
   @Column()
   assignerId: string;
 
-  // Người nhận (thực hiện)
+  // Người nhận chính (thực hiện) — dùng cho Task (1-1) và phần tử đầu của Collab (để filter đơn giản)
   @ManyToOne(() => User)
   assignee: User;
 
   @Column()
   assigneeId: string;
+
+  // Nhiều người nhận (phối hợp có thể gửi tới nhiều người cùng lúc)
+  @Column({ type: 'jsonb', default: [] })
+  assigneeIds: string[];
 
   // Bộ phận từ / tới — chủ yếu dùng cho collab (phối hợp)
   @Column({ nullable: true })
@@ -66,6 +70,10 @@ export class Assignment {
 
   @Column({ nullable: true })
   toOrgUnit: string;
+
+  // Nhiều bộ phận tới (phối hợp có thể yêu cầu nhiều bộ phận cùng lúc)
+  @Column({ type: 'jsonb', default: [] })
+  toOrgUnits: string[];
 
   @Column({ type: 'enum', enum: AssignmentPriority, default: AssignmentPriority.NORMAL })
   priority: AssignmentPriority;
