@@ -56,6 +56,7 @@ export default function AssignmentsPage({ type }: Props) {
   const list = useQuery({
     queryKey: ['assignments', type, tab],
     queryFn: async () => (await api.get('/assignments', { params: { type, box: tab } })).data,
+    retry: 1, // không quay hoài — hỏng lần 2 thì dừng luôn để hiện lỗi
   });
 
   const detail = useQuery({
