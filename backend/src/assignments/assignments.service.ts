@@ -202,7 +202,10 @@ export class AssignmentsService {
     return this.repo.save(item);
   }
 
-  async fileDownloadUrl(tenantId: string, userId: string, role: string | undefined, id: string, key: string) {
+  async fileDownloadUrl(
+    tenantId: string, userId: string, role: string | undefined, id: string, key: string,
+    disposition: 'attachment' | 'inline' = 'attachment',
+  ) {
     const item = await this.repo.findOne({ where: { id, tenantId } });
     if (!item) throw new NotFoundException('Không tìm thấy');
     const canSeeAll = role === 'admin' || role === 'director';
@@ -212,8 +215,9 @@ export class AssignmentsService {
     const file = (item.attachments ?? []).find((f) => f.key === key);
     if (!file) throw new NotFoundException('File không tồn tại');
     const filename = encodeURIComponent(file.originalName);
+    // disposition=inline → trình duyệt hiển thị trực tiếp (ảnh/PDF); attachment → tải về
     const url = await this.minio.presignedUrl(key, 3600, {
-      'response-content-disposition': `attachment; filename*=UTF-8''${filename}`,
+      'response-content-disposition': `${disposition}; filename*=UTF-8''${filename}`,
     });
     return { url };
   }

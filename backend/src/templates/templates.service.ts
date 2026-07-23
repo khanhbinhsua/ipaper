@@ -97,16 +97,17 @@ export class TemplatesService {
     return this.repo.save(tpl);
   }
 
-  async fileDownloadUrl(tenantId: string, id: string, key: string) {
+  async fileDownloadUrl(tenantId: string, id: string, key: string, disposition: 'inline' | 'attachment' = 'attachment') {
     const tpl = await this.repo.findOne({ where: { id, tenantId } });
     if (!tpl) throw new NotFoundException('Biểu mẫu không tồn tại');
     const file = (tpl.templateFiles ?? []).find((f) => f.key === key);
     if (!file) throw new NotFoundException('File mẫu không tồn tại');
-    // RFC 5987 để tên file tiếng Việt không lỗi
     const filename = encodeURIComponent(file.originalName);
-    const url = await this.minio.presignedUrl(key, 3600, {
-      'response-content-disposition': `attachment; filename*=UTF-8''${filename}`,
-    });
+    const reqParams: Record<string, string> = {
+      'response-content-disposition': `${disposition}; filename*=UTF-8''${filename}`,
+    };
+    if (disposition === 'inline') reqParams['response-content-type'] = file.mimeType;
+    const url = await this.minio.presignedUrl(key, 3600, reqParams);
     return { url };
   }
 }

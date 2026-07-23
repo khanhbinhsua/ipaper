@@ -5,8 +5,9 @@ import {
 import type { UploadRequestOption } from 'rc-upload/lib/interface';
 import {
   SearchOutlined, PlusOutlined, UnorderedListOutlined, EditOutlined, DeleteOutlined,
-  FormOutlined, UploadOutlined, DownloadOutlined, FileTextOutlined,
+  FormOutlined, UploadOutlined, DownloadOutlined, FileTextOutlined, FileSearchOutlined,
 } from '@ant-design/icons';
+import FilePreviewModal, { canPreview } from '../components/FilePreviewModal';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../lib/api';
@@ -52,6 +53,7 @@ export default function TemplatesPage() {
   const [editing, setEditing] = useState<Template | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
   const [form] = Form.useForm();
+  const [preview, setPreview] = useState<{ url?: string; filename?: string; mimeType?: string } | null>(null);
 
   const cats = useQuery({
     queryKey: ['template-categories'],
@@ -134,6 +136,14 @@ export default function TemplatesPage() {
     } catch {
       message.error('Không lấy được link tải');
     }
+  };
+
+  const previewFile = async (tplId: string, file: TemplateFile) => {
+    setPreview({ filename: file.originalName, mimeType: file.mimeType });
+    try {
+      const { data } = await api.get(`/templates/${tplId}/files/url`, { params: { key: file.key, disposition: 'inline' } });
+      setPreview({ url: data.url, filename: file.originalName, mimeType: file.mimeType });
+    } catch { message.error('Không lấy được link xem'); setPreview(null); }
   };
 
   const columns = [
@@ -283,6 +293,10 @@ export default function TemplatesPage() {
                 renderItem={(f) => (
                   <List.Item
                     actions={[
+                      ...(canPreview(f.mimeType) ? [
+                        <Button key="v" size="small" type="primary" ghost icon={<FileSearchOutlined />}
+                          onClick={() => previewFile(editing.id, f)}>Xem</Button>,
+                      ] : []),
                       <Button key="d" size="small" icon={<DownloadOutlined />}
                         onClick={() => downloadFile(editing.id, f)}>Tải</Button>,
                       <Popconfirm key="x" title="Xoá file mẫu này?" okText="Xoá" cancelText="Hủy" okButtonProps={{ danger: true }}
@@ -301,6 +315,14 @@ export default function TemplatesPage() {
           )}
         </div>
       </Modal>
+
+      <FilePreviewModal
+        open={!!preview}
+        onClose={() => setPreview(null)}
+        url={preview?.url}
+        filename={preview?.filename}
+        mimeType={preview?.mimeType}
+      />
     </div>
   );
 }

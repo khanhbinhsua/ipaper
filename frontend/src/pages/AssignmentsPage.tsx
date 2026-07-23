@@ -6,8 +6,9 @@ import {
 import type { UploadRequestOption } from 'rc-upload/lib/interface';
 import {
   PlusOutlined, EyeOutlined, DeleteOutlined, UploadOutlined,
-  DownloadOutlined, FileTextOutlined, PaperClipOutlined,
+  DownloadOutlined, FileTextOutlined, PaperClipOutlined, FileSearchOutlined,
 } from '@ant-design/icons';
+import FilePreviewModal, { canPreview } from '../components/FilePreviewModal';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import dayjs from 'dayjs';
 import { api } from '../lib/api';
@@ -44,6 +45,7 @@ export default function AssignmentsPage({ type }: Props) {
   const [detailId, setDetailId] = useState<string | null>(null);
   const [statusItem, setStatusItem] = useState<any | null>(null);
   const [heldFiles, setHeldFiles] = useState<HeldFile[]>([]); // file chờ upload sau khi tạo assignment
+  const [preview, setPreview] = useState<{ url?: string; filename?: string; mimeType?: string } | null>(null);
   const [form] = Form.useForm();
   const [statusForm] = Form.useForm();
 
@@ -128,6 +130,18 @@ export default function AssignmentsPage({ type }: Props) {
       const { data } = await api.get(`/assignments/${id}/files/url`, { params: { key } });
       window.open(data.url, '_blank');
     } catch { message.error('Không lấy được link tải'); }
+  };
+
+  // Xem trực tiếp trong app (ảnh/PDF)
+  const previewAttachment = async (id: string, f: Attachment) => {
+    setPreview({ filename: f.originalName, mimeType: f.mimeType }); // mở modal loading
+    try {
+      const { data } = await api.get(`/assignments/${id}/files/url`, { params: { key: f.key, disposition: 'inline' } });
+      setPreview({ url: data.url, filename: f.originalName, mimeType: f.mimeType });
+    } catch {
+      message.error('Không lấy được link xem');
+      setPreview(null);
+    }
   };
 
   const columns = [
@@ -306,6 +320,10 @@ export default function AssignmentsPage({ type }: Props) {
                 return (
                   <List.Item
                     actions={[
+                      ...(canPreview(f.mimeType) ? [
+                        <Button key="v" size="small" type="primary" ghost icon={<FileSearchOutlined />}
+                          onClick={() => previewAttachment(detail.data.id, f)}>Xem</Button>,
+                      ] : []),
                       <Button key="d" size="small" icon={<DownloadOutlined />}
                         onClick={() => downloadAttachment(detail.data.id, f.key)}>Tải</Button>,
                       ...(canDelete ? [
@@ -350,6 +368,14 @@ export default function AssignmentsPage({ type }: Props) {
           </Form.Item>
         </Form>
       </Modal>
+
+      <FilePreviewModal
+        open={!!preview}
+        onClose={() => setPreview(null)}
+        url={preview?.url}
+        filename={preview?.filename}
+        mimeType={preview?.mimeType}
+      />
     </div>
   );
 }

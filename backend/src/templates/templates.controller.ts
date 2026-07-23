@@ -62,9 +62,14 @@ export class TemplatesController {
     return this.service.removeFile(req.user.tenantId, id, key);
   }
 
-  // Lấy link tải file mẫu (mọi user đã đăng nhập)
+  // Lấy link tải/xem file mẫu (mọi user đã đăng nhập)
   @Get(':id/files/url')
-  fileUrl(@Request() req, @Param('id') id: string, @Query('key') key: string) {
-    return this.service.fileDownloadUrl(req.user.tenantId, id, key);
+  fileUrl(
+    @Request() req,
+    @Param('id') id: string,
+    @Query('key') key: string,
+    @Query('disposition') disposition?: 'inline' | 'attachment',
+  ) {
+    return this.service.fileDownloadUrl(req.user.tenantId, id, key, disposition);
   }
 }

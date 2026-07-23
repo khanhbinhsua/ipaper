@@ -49,7 +49,14 @@ export class AssignmentsController {
   }
 
   @Get(':id/files/url')
-  fileUrl(@Request() req, @Param('id') id: string, @Query('key') key: string) {
-    return this.service.fileDownloadUrl(req.user.tenantId, req.user.id, req.user.role, id, key);
+  fileUrl(
+    @Request() req,
+    @Param('id') id: string,
+    @Query('key') key: string,
+    @Query('disposition') disposition?: 'inline' | 'attachment',
+  ) {
+    return this.service.fileDownloadUrl(
+      req.user.tenantId, req.user.id, req.user.role, id, key, disposition,
+    );
   }
 }
