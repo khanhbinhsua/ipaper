@@ -200,6 +200,15 @@ export class DocumentsService {
 
   // Thống kê cho dashboard
   async statistics(tenantId: string, userId: string, fromDate?: string, toDate?: string) {
+    const cc = JSON.stringify([userId]);
+    // "Liên quan tới tôi" = tôi tạo / được giao / trong CC / đã thao tác
+    const mineFilter = new Brackets((w) => {
+      w.where('d.createdById = :userId', { userId })
+        .orWhere('d.assignedToId = :userId', { userId })
+        .orWhere('d.ccUserIds @> :cc', { cc })
+        .orWhere('EXISTS (SELECT 1 FROM approvals a WHERE a."documentId" = d.id AND a."actorId" = :userId)', { userId });
+    });
+
     const base = () => {
       const qb = this.docRepo
         .createQueryBuilder('d')
@@ -209,19 +218,49 @@ export class DocumentsService {
       return qb;
     };
 
+    // Chart: chỉ đếm hồ sơ LIÊN QUAN tới user (không phải toàn công ty)
+    const chartBase = () => base().clone().andWhere(mineFilter);
+
     const [inbox, outbox, draft, related, approved, rejected, pending, total] = await Promise.all([
       base().clone().andWhere('d.assignedToId = :userId AND d.status IN (:...st)', { userId, st: [DocumentStatus.PENDING, DocumentStatus.APPROVED, DocumentStatus.RETURNED] }).getCount(),
       base().clone().andWhere('EXISTS (SELECT 1 FROM approvals a WHERE a."documentId" = d.id AND a."actorId" = :userId)', { userId }).getCount(),
       base().clone().andWhere('d.createdById = :userId AND d.status = :d', { userId, d: DocumentStatus.DRAFT }).getCount(),
-      base().clone().andWhere('d.ccUserIds @> :ccUser', { ccUser: JSON.stringify([userId]) }).getCount(),
-      base().clone().andWhere('d.status IN (:...ap)', { ap: [DocumentStatus.APPROVED, DocumentStatus.COMPLETED] }).getCount(),
-      base().clone().andWhere('d.status = :s', { s: DocumentStatus.REJECTED }).getCount(),
-      base().clone().andWhere('d.status = :s', { s: DocumentStatus.PENDING }).getCount(),
-      base().clone().getCount(),
+      base().clone().andWhere('d.ccUserIds @> :ccUser', { ccUser: cc }).getCount(),
+      chartBase().andWhere('d.status IN (:...ap)', { ap: [DocumentStatus.APPROVED, DocumentStatus.COMPLETED] }).getCount(),
+      chartBase().andWhere('d.status = :s', { s: DocumentStatus.REJECTED }).getCount(),
+      chartBase().andWhere('d.status = :s', { s: DocumentStatus.PENDING }).getCount(),
+      chartBase().getCount(),
     ]);
 
+    // Thống kê Giao việc + Phối hợp của cá nhân
+    const asns = await this.docRepo.manager
+      .createQueryBuilder()
+      .select('a.type', 'type')
+      .addSelect('CASE WHEN a."assignerId" = :userId THEN \'assigned\' ELSE \'received\' END', 'box')
+      .addSelect('COUNT(*)::int', 'count')
+      .from('assignments', 'a')
+      .where('a.tenantId = :tenantId', { tenantId })
+      .andWhere(new Brackets((w) => {
+        w.where('a."assignerId" = :userId', { userId })
+          .orWhere('a."assigneeId" = :userId', { userId })
+          .orWhere('a."assigneeIds"::jsonb @> :cc::jsonb', { cc });
+      }))
+      // Chỉ đếm việc chưa đóng (đang cần theo dõi)
+      .andWhere('a.status IN (:...st)', { st: ['pending', 'in_progress'] })
+      .groupBy('a.type').addGroupBy('box')
+      .setParameter('userId', userId)
+      .getRawMany();
+
+    const asnCounts = { taskReceived: 0, taskAssigned: 0, collabReceived: 0, collabAssigned: 0 };
+    for (const r of asns) {
+      if (r.type === 'task' && r.box === 'received') asnCounts.taskReceived += r.count;
+      else if (r.type === 'task' && r.box === 'assigned') asnCounts.taskAssigned += r.count;
+      else if (r.type === 'collab' && r.box === 'received') asnCounts.collabReceived += r.count;
+      else if (r.type === 'collab' && r.box === 'assigned') asnCounts.collabAssigned += r.count;
+    }
+
     return {
-      counters: { inbox, outbox, draft, related },
+      counters: { inbox, outbox, draft, related, ...asnCounts },
       chart: { approved, rejected, pending, total },
     };
   }
