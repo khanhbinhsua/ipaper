@@ -49,6 +49,7 @@ export default function App() {
               <Route path="/related" element={<DocumentListPage box="related" />} />
               <Route path="/search" element={<DocumentListPage box="all" />} />
               <Route path="/create" element={<CreateDocumentPage />} />
+              <Route path="/documents/:id/edit" element={<CreateDocumentPage />} />
               <Route path="/documents/:id" element={<DocumentDetailPage />} />
               <Route path="/templates" element={<TemplatesPage />} />
               <Route path="/tasks" element={<AssignmentsPage type="task" />} />

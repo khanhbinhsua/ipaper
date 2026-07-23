@@ -1,5 +1,5 @@
 import {
-  Controller, Get, Post, Body, Param, Delete, Query, UseGuards, Request,
+  Controller, Get, Post, Patch, Body, Param, Delete, Query, UseGuards, Request,
 } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { DocumentsService } from './documents.service';
@@ -19,6 +19,12 @@ export class DocumentsController {
   @Post(':id/submit')
   submit(@Request() req, @Param('id') id: string) {
     return this.service.submit(req.user.tenantId, req.user.id, id);
+  }
+
+  // Cập nhật hồ sơ nháp (chỉ chủ nhân, chỉ khi status=draft)
+  @Patch(':id')
+  update(@Request() req, @Param('id') id: string, @Body() dto: any) {
+    return this.service.updateDraft(req.user.tenantId, req.user.id, id, dto);
   }
 
   @Post(':id/approve')

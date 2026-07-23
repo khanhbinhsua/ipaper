@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Table, Input, Select, Button, Tag, Space, Card } from 'antd';
-import { SearchOutlined, EyeOutlined, DeleteOutlined } from '@ant-design/icons';
+import { SearchOutlined, EyeOutlined, DeleteOutlined, EditOutlined } from '@ant-design/icons';
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { vnTime } from '../lib/datetime';
@@ -43,13 +43,17 @@ export default function DocumentListPage({ box }: { box: Box }) {
 
   const columns = [
     {
-      title: 'Thao tác', key: 'actions', width: 110,
+      title: 'Thao tác', key: 'actions', width: 160,
       render: (_: any, r: any) => (
         <Space>
           <Button size="small" icon={<EyeOutlined />} onClick={() => navigate(`/documents/${r.id}`)} />
           {box === 'draft' && (
-            <Button size="small" danger icon={<DeleteOutlined />}
-              onClick={async () => { await api.delete(`/documents/${r.id}`); refetch(); }} />
+            <>
+              <Button size="small" type="primary" ghost icon={<EditOutlined />} title="Sửa"
+                onClick={() => navigate(`/documents/${r.id}/edit`)} />
+              <Button size="small" danger icon={<DeleteOutlined />} title="Xoá"
+                onClick={async () => { await api.delete(`/documents/${r.id}`); refetch(); }} />
+            </>
           )}
         </Space>
       ),

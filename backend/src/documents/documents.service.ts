@@ -69,6 +69,27 @@ export class DocumentsService {
     return abbr || 'HS';
   }
 
+  // Cập nhật hồ sơ nháp (chỉ chủ nhân, chỉ khi status=draft hoặc returned)
+  async updateDraft(tenantId: string, userId: string, docId: string, dto: any) {
+    const doc = await this.getOwned(tenantId, userId, docId);
+    if (doc.status !== DocumentStatus.DRAFT && doc.status !== DocumentStatus.RETURNED) {
+      throw new ForbiddenException('Chỉ được sửa hồ sơ ở trạng thái nháp hoặc bị trả về');
+    }
+    // Cho phép cập nhật các trường cơ bản + luồng phê duyệt (không đổi mã, người tạo, trạng thái)
+    const allowed: (keyof typeof dto)[] = [
+      'title', 'docType', 'priority', 'description', 'orgUnit', 'dueDate', 'workflowId',
+      'assignedToId', 'secondApproverId', 'nextApproverIds', 'ccUserIds',
+    ];
+    for (const k of allowed) {
+      if (dto[k] !== undefined) (doc as any)[k] = dto[k];
+    }
+    // Đồng bộ approverQueue nếu nextApproverIds được cập nhật
+    if (dto.nextApproverIds !== undefined) {
+      doc.approverQueue = (dto.nextApproverIds ?? []).filter(Boolean);
+    }
+    return this.docRepo.save(doc);
+  }
+
   // Gửi duyệt — chuyển từ nháp sang pending
   async submit(tenantId: string, userId: string, docId: string) {
     const doc = await this.getOwned(tenantId, userId, docId);

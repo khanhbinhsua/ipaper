@@ -1,8 +1,9 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Form, Input, Select, DatePicker, Button, Row, Col, message, Upload, Table } from 'antd';
 import { SaveOutlined, SendOutlined, ArrowLeftOutlined, FolderOpenOutlined, PaperClipOutlined, PlusOutlined } from '@ant-design/icons';
-import { useNavigate, useLocation } from 'react-router-dom';
-import { useMutation } from '@tanstack/react-query';
+import { useNavigate, useLocation, useParams } from 'react-router-dom';
+import { useMutation, useQuery } from '@tanstack/react-query';
+import dayjs from 'dayjs';
 import { api } from '../lib/api';
 import UserSelect from '../components/UserSelect';
 
@@ -20,20 +21,56 @@ interface HeldFile { uid: string; name: string; size: number; type: string; raw:
 export default function CreateDocumentPage() {
   const navigate = useNavigate();
   const location = useLocation();
+  const params = useParams();
+  const editId = params.id; // /documents/:id/edit
+  const isEdit = !!editId;
   const tpl = (location.state as any)?.template;
   const [form] = Form.useForm();
   const [files, setFiles] = useState<HeldFile[]>([]);
 
-  const createMutation = useMutation({ mutationFn: (values: any) => api.post('/documents', values) });
+  // Nạp hồ sơ hiện tại khi đang ở chế độ sửa (chỉ chạy khi có editId)
+  const existing = useQuery({
+    queryKey: ['document-edit', editId],
+    queryFn: async () => (await api.get(`/documents/${editId}`)).data,
+    enabled: isEdit,
+  });
 
-  // Tạo hồ sơ rồi upload các tài liệu đính kèm đang giữ
+  // Điền form khi load xong hồ sơ đang sửa
+  useEffect(() => {
+    if (!isEdit || !existing.data) return;
+    const d = existing.data;
+    form.setFieldsValue({
+      title: d.title,
+      docType: d.docType,
+      priority: d.priority || 'normal',
+      description: d.description,
+      orgUnit: d.orgUnit,
+      dueDate: d.dueDate ? dayjs(d.dueDate) : undefined,
+      assignedToId: d.assignedToId,
+      approver2: d.approverQueue?.[0],
+      approver3: d.approverQueue?.[1],
+      approver4: d.approverQueue?.[2],
+      ccUserIds: d.ccUserIds,
+    });
+  }, [isEdit, existing.data, form]);
+
+  const createMutation = useMutation({ mutationFn: (values: any) => api.post('/documents', values) });
+  const updateMutation = useMutation({ mutationFn: (values: any) => api.patch(`/documents/${editId}`, values) });
+
+  // Tạo hồ sơ (hoặc cập nhật nếu đang sửa) + upload các file đính kèm mới
   const persist = async () => {
     const values = await form.validateFields();
-    // Gom người duyệt cấp 2..4 thành hàng đợi (giữ thứ tự, bỏ ô trống)
     const nextApproverIds = [values.approver2, values.approver3, values.approver4].filter(Boolean);
     const { approver2, approver3, approver4, ...rest } = values;
     const payload = { ...rest, nextApproverIds, dueDate: values.dueDate?.toISOString() };
-    const { data: doc } = await createMutation.mutateAsync(payload);
+    let doc: any;
+    if (isEdit) {
+      const { data } = await updateMutation.mutateAsync(payload);
+      doc = data;
+    } else {
+      const { data } = await createMutation.mutateAsync(payload);
+      doc = data;
+    }
     for (const f of files) {
       const fd = new FormData();
       fd.append('file', f.raw);
@@ -57,7 +94,7 @@ export default function CreateDocumentPage() {
     <div>
       {/* Thanh tiêu đề */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingBottom: 12, borderBottom: '2px solid #f0f0f0', marginBottom: 20 }}>
-        <span style={{ fontSize: 18, fontWeight: 600, color: '#E4002B' }}>▦ Hồ sơ {tpl ? `— ${tpl.name}` : ''}</span>
+        <span style={{ fontSize: 18, fontWeight: 600, color: '#E4002B' }}>▦ {isEdit ? `Sửa hồ sơ nháp${existing.data?.code ? ` — ${existing.data.code}` : ''}` : `Hồ sơ ${tpl ? `— ${tpl.name}` : ''}`}</span>
         <div style={{ display: 'flex', gap: 8 }}>
           <Button shape="circle" icon={<ArrowLeftOutlined />} onClick={() => navigate(-1)} style={{ color: '#E4002B', borderColor: '#E4002B' }} />
           <Button shape="circle" icon={<PlusOutlined />} onClick={() => { form.resetFields(); setFiles([]); }} type="primary" />
