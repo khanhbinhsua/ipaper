@@ -15,6 +15,7 @@ import { vnTime } from '../lib/datetime';
 import { api } from '../lib/api';
 import { useAuthStore } from '../store/auth.store';
 import UserSelect from '../components/UserSelect';
+import FilePreviewModal, { canPreview } from '../components/FilePreviewModal';
 
 const { TextArea } = Input;
 
@@ -44,7 +45,7 @@ export default function DocumentDetailPage() {
   const [comment, setComment] = useState('');
   const [forwardOpen, setForwardOpen] = useState(false);
   const [nextAssignee, setNextAssignee] = useState<string>();
-  const [viewer, setViewer] = useState<{ url: string; name: string } | null>(null);
+  const [preview, setPreview] = useState<{ url?: string; filename?: string; mimeType?: string } | null>(null);
 
   const { data: doc, isLoading, refetch } = useQuery({
     queryKey: ['document', id],
@@ -196,11 +197,12 @@ export default function DocumentDetailPage() {
                       renderItem={(f: any) => (
                         <List.Item
                           actions={[
-                            ...(f.mimetype === 'application/pdf' ? [
+                            ...(canPreview(f.mimetype) ? [
                               <Button key="view" size="small" type="link" icon={<EyeOutlined />}
                                 onClick={async () => {
+                                  setPreview({ filename: f.filename, mimeType: f.mimetype });
                                   const { data } = await api.get(`/files/${f.id}/url`, { params: { inline: true } });
-                                  setViewer({ url: data.url, name: f.filename });
+                                  setPreview({ url: data.url, filename: f.filename, mimeType: f.mimetype });
                                 }}>Xem</Button>,
                             ] : []),
                             <Button key="dl" size="small" icon={<DownloadOutlined />}
@@ -259,20 +261,14 @@ export default function DocumentDetailPage() {
           value={comment} onChange={(e) => setComment(e.target.value)} />
       </Modal>
 
-      {/* Xem PDF trực tiếp trong app */}
-      <Modal
-        title={viewer?.name}
-        open={!!viewer}
-        onCancel={() => setViewer(null)}
-        footer={null}
-        width="90%"
-        style={{ top: 20 }}
-        styles={{ body: { height: '82vh', padding: 0 } }}
-      >
-        {viewer && (
-          <iframe src={viewer.url} title={viewer.name} style={{ width: '100%', height: '100%', border: 'none' }} />
-        )}
-      </Modal>
+      {/* Xem trực tiếp file ảnh/PDF trong app */}
+      <FilePreviewModal
+        open={!!preview}
+        onClose={() => setPreview(null)}
+        url={preview?.url}
+        filename={preview?.filename}
+        mimeType={preview?.mimeType}
+      />
     </div>
   );
 }
