@@ -244,9 +244,15 @@ export default function AssignmentsPage({ type }: Props) {
           <Form.Item name="description" label="Nội dung">
             <Input.TextArea rows={4} placeholder="Mô tả chi tiết yêu cầu" />
           </Form.Item>
-          <Form.Item name="assigneeIds" label="Người nhận (có thể chọn nhiều)" rules={[{ required: true, message: 'Chọn ít nhất 1 người nhận' }]}>
-            <UserSelect mode="multiple" placeholder="Tìm theo tên/email để thêm người nhận" />
-          </Form.Item>
+          {isTask ? (
+            <Form.Item name="assigneeId" label="Người nhận" rules={[{ required: true, message: 'Chọn người nhận' }]}>
+              <UserSelect placeholder="Tìm theo tên/email" />
+            </Form.Item>
+          ) : (
+            <Form.Item name="assigneeIds" label="Người nhận (có thể chọn nhiều)" rules={[{ required: true, message: 'Chọn ít nhất 1 người nhận' }]}>
+              <UserSelect mode="multiple" placeholder="Tìm theo tên/email để thêm người nhận" />
+            </Form.Item>
+          )}
           {!isTask && (
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
               <Form.Item name="fromOrgUnit" label="Từ bộ phận">
