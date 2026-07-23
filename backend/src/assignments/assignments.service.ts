@@ -4,7 +4,9 @@ import { Repository, Brackets } from 'typeorm';
 import {
   Assignment, AssignmentType, AssignmentStatus, AssignmentPriority,
 } from './assignment.entity';
+import { v4 as uuid } from 'uuid';
 import { NotificationsService } from '../notifications/notifications.service';
+import { MinioService } from '../files/minio.service';
 
 interface CreateAssignmentDto {
   type: AssignmentType;
@@ -36,6 +38,7 @@ export class AssignmentsService {
   constructor(
     @InjectRepository(Assignment) private repo: Repository<Assignment>,
     private notifications: NotificationsService,
+    private minio: MinioService,
   ) {}
 
   async create(tenantId: string, userId: string, dto: CreateAssignmentDto) {
@@ -161,7 +164,57 @@ export class AssignmentsService {
     if (!item) throw new NotFoundException('Không tìm thấy');
     // Chỉ người giao mới xoá được
     if (item.assignerId !== userId) throw new ForbiddenException('Chỉ người giao mới xoá được');
+    // Xoá file đính kèm trên MinIO
+    for (const f of item.attachments ?? []) {
+      try { await this.minio.remove(f.key); } catch { /* ignore */ }
+    }
     await this.repo.remove(item);
     return { message: 'Đã xoá' };
+  }
+
+  // === File đính kèm ===
+  // Người giao HOẶC người nhận đều có thể upload (người nhận có thể gửi kèm kết quả)
+  async addFile(tenantId: string, userId: string, id: string, file: Express.Multer.File) {
+    const item = await this.repo.findOne({ where: { id, tenantId } });
+    if (!item) throw new NotFoundException('Không tìm thấy');
+    if (item.assignerId !== userId && item.assigneeId !== userId) {
+      throw new ForbiddenException('Không có quyền đính kèm file');
+    }
+    // Multer decode filename latin1 → utf8 cho đúng tiếng Việt
+    const originalName = Buffer.from(file.originalname, 'latin1').toString('utf8');
+    const key = `assignments/${id}/${uuid()}-${originalName}`;
+    await this.minio.upload(key, file.buffer, file.mimetype);
+    item.attachments = [
+      ...(item.attachments ?? []),
+      { key, originalName, size: file.size, mimeType: file.mimetype, uploadedAt: new Date().toISOString() },
+    ];
+    return this.repo.save(item);
+  }
+
+  async removeFile(tenantId: string, userId: string, id: string, key: string) {
+    const item = await this.repo.findOne({ where: { id, tenantId } });
+    if (!item) throw new NotFoundException('Không tìm thấy');
+    if (item.assignerId !== userId && item.assigneeId !== userId) {
+      throw new ForbiddenException('Không có quyền xoá file');
+    }
+    item.attachments = (item.attachments ?? []).filter((f) => f.key !== key);
+    try { await this.minio.remove(key); } catch { /* ignore */ }
+    return this.repo.save(item);
+  }
+
+  async fileDownloadUrl(tenantId: string, userId: string, role: string | undefined, id: string, key: string) {
+    const item = await this.repo.findOne({ where: { id, tenantId } });
+    if (!item) throw new NotFoundException('Không tìm thấy');
+    const canSeeAll = role === 'admin' || role === 'director';
+    if (!canSeeAll && item.assignerId !== userId && item.assigneeId !== userId) {
+      throw new ForbiddenException('Không có quyền tải file');
+    }
+    const file = (item.attachments ?? []).find((f) => f.key === key);
+    if (!file) throw new NotFoundException('File không tồn tại');
+    const filename = encodeURIComponent(file.originalName);
+    const url = await this.minio.presignedUrl(key, 3600, {
+      'response-content-disposition': `attachment; filename*=UTF-8''${filename}`,
+    });
+    return { url };
   }
 }

@@ -1,9 +1,13 @@
 import { useState } from 'react';
 import {
   Card, Tabs, Table, Space, Tag, Button, Modal, Form, Input, Select, DatePicker,
-  message, Popconfirm, Descriptions,
+  message, Popconfirm, Descriptions, Upload, List,
 } from 'antd';
-import { PlusOutlined, EyeOutlined, DeleteOutlined } from '@ant-design/icons';
+import type { UploadRequestOption } from 'rc-upload/lib/interface';
+import {
+  PlusOutlined, EyeOutlined, DeleteOutlined, UploadOutlined,
+  DownloadOutlined, FileTextOutlined, PaperClipOutlined,
+} from '@ant-design/icons';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import dayjs from 'dayjs';
 import { api } from '../lib/api';
@@ -12,6 +16,12 @@ import UserSelect from '../components/UserSelect';
 import { useAuthStore } from '../store/auth.store';
 
 interface Props { type: 'task' | 'collab'; }
+
+interface HeldFile { uid: string; name: string; size: number; type: string; raw: File; }
+interface Attachment { key: string; originalName: string; size: number; mimeType: string; uploadedAt: string; }
+
+const formatSize = (n: number) =>
+  n < 1024 ? `${n} B` : n < 1024 * 1024 ? `${(n / 1024).toFixed(1)} KB` : `${(n / 1024 / 1024).toFixed(1)} MB`;
 
 const priorityLabels: Record<string, string> = {
   low: 'Thấp', normal: 'Bình thường', high: 'Cao', urgent: 'Khẩn',
@@ -33,6 +43,7 @@ export default function AssignmentsPage({ type }: Props) {
   const [createOpen, setCreateOpen] = useState(false);
   const [detailId, setDetailId] = useState<string | null>(null);
   const [statusItem, setStatusItem] = useState<any | null>(null);
+  const [heldFiles, setHeldFiles] = useState<HeldFile[]>([]); // file chờ upload sau khi tạo assignment
   const [form] = Form.useForm();
   const [statusForm] = Form.useForm();
 
@@ -52,10 +63,19 @@ export default function AssignmentsPage({ type }: Props) {
   });
 
   const createMutation = useMutation({
-    mutationFn: (v: any) => api.post('/assignments', { ...v, type, dueDate: v.dueDate?.toISOString() }),
+    mutationFn: async (v: any) => {
+      const { data } = await api.post('/assignments', { ...v, type, dueDate: v.dueDate?.toISOString() });
+      // Upload các file đã giữ (nếu có) vào assignment vừa tạo
+      for (const f of heldFiles) {
+        const fd = new FormData();
+        fd.append('file', f.raw);
+        await api.post(`/assignments/${data.id}/files`, fd);
+      }
+      return data;
+    },
     onSuccess: () => {
       message.success(isTask ? 'Đã giao việc' : 'Đã gửi yêu cầu phối hợp');
-      setCreateOpen(false); form.resetFields(); list.refetch();
+      setCreateOpen(false); form.resetFields(); setHeldFiles([]); list.refetch();
     },
     onError: (e: any) => message.error(e.response?.data?.message || 'Không lưu được'),
   });
@@ -76,6 +96,40 @@ export default function AssignmentsPage({ type }: Props) {
     onError: (e: any) => message.error(e.response?.data?.message || 'Không xoá được'),
   });
 
+  // Upload file vào chi tiết (assignment đã tồn tại)
+  const uploadToDetail = async (opt: UploadRequestOption) => {
+    if (!detailId) return;
+    const fd = new FormData();
+    fd.append('file', opt.file as any);
+    try {
+      await api.post(`/assignments/${detailId}/files`, fd);
+      opt.onSuccess?.({} as any);
+      message.success('Đã đính kèm');
+      detail.refetch(); list.refetch();
+    } catch (e: any) {
+      opt.onError?.(e);
+      message.error(e.response?.data?.message || 'Không đính kèm được');
+    }
+  };
+
+  const removeAttachment = async (key: string) => {
+    if (!detailId) return;
+    try {
+      await api.delete(`/assignments/${detailId}/files`, { params: { key } });
+      message.success('Đã xoá file');
+      detail.refetch();
+    } catch (e: any) {
+      message.error(e.response?.data?.message || 'Không xoá được file');
+    }
+  };
+
+  const downloadAttachment = async (id: string, key: string) => {
+    try {
+      const { data } = await api.get(`/assignments/${id}/files/url`, { params: { key } });
+      window.open(data.url, '_blank');
+    } catch { message.error('Không lấy được link tải'); }
+  };
+
   const columns = [
     { title: 'Mã', dataIndex: 'code', render: (v: string) => <b style={{ color: '#E4002B' }}>{v}</b>, width: 160 },
     { title: 'Tiêu đề', dataIndex: 'title' },
@@ -91,6 +145,7 @@ export default function AssignmentsPage({ type }: Props) {
       },
     },
     { title: 'Ưu tiên', dataIndex: 'priority', render: (v: string) => <Tag color={priorityColors[v]}>{priorityLabels[v] ?? v}</Tag> },
+    { title: 'Đính kèm', dataIndex: 'attachments', render: (v: Attachment[]) => v?.length ? <Tag icon={<PaperClipOutlined />} color="green">{v.length}</Tag> : '—' },
     { title: 'Trạng thái', dataIndex: 'status', render: (v: string) => <Tag color={statusColors[v]}>{statusLabels[v] ?? v}</Tag> },
     { title: 'Hạn', dataIndex: 'dueDate', render: (v: string) => v ? vnTime(v, 'DD/MM/YYYY') : '—' },
     {
@@ -137,7 +192,7 @@ export default function AssignmentsPage({ type }: Props) {
       <Modal
         title={createLabel}
         open={createOpen}
-        onCancel={() => setCreateOpen(false)}
+        onCancel={() => { setCreateOpen(false); setHeldFiles([]); form.resetFields(); }}
         onOk={() => form.submit()}
         okText={isTask ? 'Giao' : 'Gửi'} cancelText="Hủy"
         confirmLoading={createMutation.isPending}
@@ -171,6 +226,37 @@ export default function AssignmentsPage({ type }: Props) {
               <DatePicker style={{ width: '100%' }} format="DD/MM/YYYY" />
             </Form.Item>
           </div>
+
+          <Form.Item label="File đính kèm (tài liệu, biểu mẫu, tham chiếu...)">
+            <Upload
+              multiple
+              showUploadList={false}
+              beforeUpload={(f) => {
+                setHeldFiles((prev) => [...prev, { uid: f.uid, name: f.name, size: f.size, type: f.type, raw: f }]);
+                return false;
+              }}
+            >
+              <Button icon={<UploadOutlined />}>Chọn file</Button>
+            </Upload>
+            {heldFiles.length > 0 && (
+              <List
+                size="small" style={{ marginTop: 8 }}
+                dataSource={heldFiles}
+                renderItem={(f) => (
+                  <List.Item
+                    actions={[
+                      <Button key="x" size="small" danger icon={<DeleteOutlined />}
+                        onClick={() => setHeldFiles((prev) => prev.filter((x) => x.uid !== f.uid))} />,
+                    ]}
+                  >
+                    <FileTextOutlined style={{ marginRight: 8 }} />
+                    <span>{f.name}</span>
+                    <span style={{ marginLeft: 8, color: '#888', fontSize: 12 }}>{formatSize(f.size)}</span>
+                  </List.Item>
+                )}
+              />
+            )}
+          </Form.Item>
         </Form>
       </Modal>
 
@@ -199,6 +285,45 @@ export default function AssignmentsPage({ type }: Props) {
             <Descriptions.Item label="Nội dung" span={2}>{detail.data.description || '—'}</Descriptions.Item>
             <Descriptions.Item label="Ghi chú tiến độ" span={2}>{detail.data.progressNote || '—'}</Descriptions.Item>
           </Descriptions>
+        )}
+
+        {detail.data && (
+          <div style={{ marginTop: 16 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+              <b style={{ color: '#E4002B' }}>📎 File đính kèm</b>
+              {(detail.data.assignerId === user?.id || detail.data.assigneeId === user?.id) && (
+                <Upload customRequest={uploadToDetail} showUploadList={false} multiple>
+                  <Button size="small" icon={<UploadOutlined />}>Thêm file</Button>
+                </Upload>
+              )}
+            </div>
+            <List
+              size="small"
+              dataSource={(detail.data.attachments ?? []) as Attachment[]}
+              locale={{ emptyText: 'Chưa có file đính kèm' }}
+              renderItem={(f) => {
+                const canDelete = detail.data.assignerId === user?.id || detail.data.assigneeId === user?.id;
+                return (
+                  <List.Item
+                    actions={[
+                      <Button key="d" size="small" icon={<DownloadOutlined />}
+                        onClick={() => downloadAttachment(detail.data.id, f.key)}>Tải</Button>,
+                      ...(canDelete ? [
+                        <Popconfirm key="x" title="Xoá file này?" okText="Xoá" cancelText="Hủy" okButtonProps={{ danger: true }}
+                          onConfirm={() => removeAttachment(f.key)}>
+                          <Button size="small" danger icon={<DeleteOutlined />} />
+                        </Popconfirm>,
+                      ] : []),
+                    ]}
+                  >
+                    <FileTextOutlined style={{ marginRight: 8 }} />
+                    <b>{f.originalName}</b>
+                    <span style={{ marginLeft: 8, color: '#888', fontSize: 12 }}>{formatSize(f.size)}</span>
+                  </List.Item>
+                );
+              }}
+            />
+          </div>
         )}
       </Modal>
 

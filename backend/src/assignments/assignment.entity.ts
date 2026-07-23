@@ -83,6 +83,10 @@ export class Assignment {
   @Column({ type: 'text', nullable: true })
   progressNote: string;
 
+  // File đính kèm để người nhận biết ngữ cảnh (tài liệu, biểu mẫu, tham chiếu...)
+  @Column({ type: 'jsonb', default: [] })
+  attachments: Array<{ key: string; originalName: string; size: number; mimeType: string; uploadedAt: string }>;
+
   @CreateDateColumn()
   createdAt: Date;
 
