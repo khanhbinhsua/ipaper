@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Form, Input, Select, DatePicker, Button, Row, Col, message, Upload, Table } from 'antd';
-import { SaveOutlined, SendOutlined, MessageOutlined, ArrowLeftOutlined, FolderOpenOutlined, PaperClipOutlined, PlusOutlined } from '@ant-design/icons';
+import { SaveOutlined, SendOutlined, ArrowLeftOutlined, FolderOpenOutlined, PaperClipOutlined, PlusOutlined } from '@ant-design/icons';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useMutation } from '@tanstack/react-query';
 import { api } from '../lib/api';
@@ -43,18 +43,6 @@ export default function CreateDocumentPage() {
   };
 
   const handleSaveDraft = async () => { await persist(); message.success('Đã lưu nháp'); navigate('/draft'); };
-  const handleConsult = async () => {
-    const values = form.getFieldsValue();
-    if (!values.ccUserIds?.length) {
-      message.warning('Vui lòng chọn "Người liên quan" để gửi lấy ý kiến');
-      return;
-    }
-    const doc = await persist();
-    // Lấy ý kiến: chỉ gửi thông báo cho Người liên quan (CC) — hồ sơ VẪN LÀ NHÁP
-    await api.post(`/documents/${doc.id}/consult`);
-    message.success('Đã gửi thông báo lấy ý kiến tới người liên quan. Hồ sơ vẫn ở nháp.');
-    navigate('/draft');
-  };
   const handleSubmit = async () => {
     const doc = await persist();
     await api.post(`/documents/${doc.id}/submit`);
@@ -164,7 +152,6 @@ export default function CreateDocumentPage() {
       <div style={{ display: 'flex', justifyContent: 'center', gap: 12, margin: '8px 0 28px' }}>
         <Button danger type="primary" icon={<SaveOutlined />} onClick={handleSaveDraft} loading={createMutation.isPending}>Lưu</Button>
         <Button type="primary" icon={<SendOutlined />} onClick={handleSubmit} loading={createMutation.isPending}>Gửi duyệt</Button>
-        <Button icon={<MessageOutlined />} onClick={handleConsult} loading={createMutation.isPending}>Lấy ý kiến</Button>
       </div>
 
       {/* File mẫu từ biểu mẫu — chỉ hiện khi tạo hồ sơ từ biểu mẫu và có file mẫu */}

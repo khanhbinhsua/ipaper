@@ -82,21 +82,6 @@ export class DocumentsService {
     return doc;
   }
 
-  // Lấy ý kiến — gửi thông báo cho người liên quan (CC) xem/góp ý,
-  // hồ sơ VẪN Ở TRẠNG THÁI NHÁP (chưa gửi duyệt chính thức).
-  async consult(tenantId: string, userId: string, docId: string) {
-    const doc = await this.getOwned(tenantId, userId, docId);
-    if (!doc.ccUserIds?.length) {
-      throw new ForbiddenException('Cần thêm ít nhất 1 "Người liên quan" trước khi lấy ý kiến');
-    }
-    // Không đổi status; chỉ ghi log + thông báo tới CC
-    await this.logApproval(docId, userId, ApprovalAction.CONSULT, doc.currentStep, 'Xin ý kiến');
-    for (const ccId of doc.ccUserIds) {
-      await this.notifications.notify(ccId, `Hồ sơ "${doc.title}" cần bạn cho ý kiến`, doc.id);
-    }
-    return doc;
-  }
-
   async findOne(tenantId: string, docId: string) {
     const doc = await this.docRepo.findOne({
       where: { id: docId, tenantId },
