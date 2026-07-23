@@ -30,7 +30,7 @@ export class DocumentsService {
 
     // Số thứ tự chạy tăng trong tổ chức
     const seq = (await this.docRepo.count({ where: { tenantId } })) + 1;
-    const code = this.genCode(dto.orgUnit, seq);
+    const code = this.genCode(dto.docType, seq);
 
     const doc = this.docRepo.create({
       ...dto,
@@ -45,22 +45,20 @@ export class DocumentsService {
     return this.docRepo.save(doc);
   }
 
-  // Mã hồ sơ: <Phòng ban>-<YYYYMMDD ngày tạo>-<STT 4 chữ số>. Vd: KT-20260619-0007
-  private genCode(orgUnit: string | undefined, seq: number): string {
+  // Mã hồ sơ: <Loại yêu cầu>-<YYYYMMDD ngày tạo>-<STT 4 chữ số>. Vd: DN-20260723-0007
+  private genCode(docType: string | undefined, seq: number): string {
     const d = new Date();
     const p = (n: number) => String(n).padStart(2, '0');
     const ymd = `${d.getFullYear()}${p(d.getMonth() + 1)}${p(d.getDate())}`;
-    return `${this.deptCode(orgUnit)}-${ymd}-${String(seq).padStart(4, '0')}`;
+    return `${this.docTypeCode(docType)}-${ymd}-${String(seq).padStart(4, '0')}`;
   }
 
-  // Viết tắt tên phòng ban: bỏ tiền tố (Phòng/Ban/Trung tâm/Bộ phận), lấy chữ cái đầu mỗi từ.
-  // "Phòng Kế toán" -> "KT", "Phòng Kinh doanh" -> "KD", "Ban Nhân sự" -> "NS". Rỗng -> "HS".
-  private deptCode(orgUnit?: string): string {
-    if (!orgUnit) return 'HS';
-    const cleaned = orgUnit
-      .normalize('NFC')
-      .replace(/\b(Phòng|Ban|Trung tâm|Bộ phận|Khối)\b/gi, '')
-      .trim();
+  // Viết tắt tên loại yêu cầu: bỏ dấu, lấy chữ cái đầu mỗi từ.
+  // "Đề nghị" -> "DN", "Tờ trình" -> "TT", "Đề xuất" -> "DX", "Thanh toán" -> "TT",
+  // "Báo cáo" -> "BC", "Công văn" -> "CV", "Trình ký" -> "TK". Rỗng -> "HS".
+  private docTypeCode(docType?: string): string {
+    if (!docType) return 'HS';
+    const cleaned = docType.normalize('NFC').trim();
     const words = cleaned.split(/\s+/).filter(Boolean);
     if (!words.length) return 'HS';
     // Bỏ dấu để lấy chữ cái đầu ASCII
