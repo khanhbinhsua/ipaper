@@ -138,29 +138,29 @@ export class AssignmentsService {
 
     switch (dto.box) {
       case 'assigned':
-        qb.andWhere('a.assignerId = :uid', { uid: userId });
+        qb.andWhere('a."assignerId" = :uid', { uid: userId });
         break;
       case 'received':
         qb.andWhere(new Brackets((w) => {
-          w.where('a.assigneeId = :uid', { uid: userId })
-            .orWhere('a.assigneeIds::jsonb @> :uidJson::jsonb', { uidJson });
+          w.where('a."assigneeId" = :uid', { uid: userId })
+            .orWhere('a."assigneeIds" @> :uidJson::jsonb', { uidJson });
         }));
         break;
       case 'all':
         if (!canSeeAll) {
           qb.andWhere(new Brackets((w) => {
-            w.where('a.assignerId = :uid', { uid: userId })
-              .orWhere('a.assigneeId = :uid', { uid: userId })
-              .orWhere('a.assigneeIds::jsonb @> :uidJson::jsonb', { uidJson });
+            w.where('a."assignerId" = :uid', { uid: userId })
+              .orWhere('a."assigneeId" = :uid', { uid: userId })
+              .orWhere('a."assigneeIds" @> :uidJson::jsonb', { uidJson });
           }));
         }
         break;
       default:
         // mặc định: chỉ hiện liên quan tới người dùng (giao hoặc nhận)
         qb.andWhere(new Brackets((w) => {
-          w.where('a.assignerId = :uid', { uid: userId })
-            .orWhere('a.assigneeId = :uid', { uid: userId })
-            .orWhere('a.assigneeIds::jsonb @> :uidJson::jsonb', { uidJson });
+          w.where('a."assignerId" = :uid', { uid: userId })
+            .orWhere('a."assigneeId" = :uid', { uid: userId })
+            .orWhere('a."assigneeIds" @> :uidJson::jsonb', { uidJson });
         }));
     }
 
