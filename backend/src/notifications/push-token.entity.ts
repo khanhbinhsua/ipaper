@@ -8,7 +8,7 @@ export class PushToken {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @Column()
+  @Column('uuid')
   @Index()
   userId: string;
 
