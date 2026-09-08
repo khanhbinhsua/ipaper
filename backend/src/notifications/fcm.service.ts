@@ -57,8 +57,12 @@ export class FcmService implements OnModuleInit {
 
   // Gửi push tới TẤT CẢ thiết bị của một user (in không sao — Socket.IO sẽ vẫn báo)
   async pushToUser(userId: string, title: string, body: string, data?: Record<string, string>) {
-    if (!this.app) return;
+    if (!this.app) {
+      this.logger.warn(`pushToUser(${userId}): FCM chưa init, bỏ qua`);
+      return;
+    }
     const tokens = await this.tokenRepo.find({ where: { userId } });
+    this.logger.log(`pushToUser(${userId}): tìm thấy ${tokens.length} token(s)`);
     if (!tokens.length) return;
     await this.sendMany(tokens.map((t) => t.token), title, body, data);
   }
@@ -87,12 +91,16 @@ export class FcmService implements OnModuleInit {
           },
         },
       });
-      // Dọn token die (unregistered / invalid)
+      this.logger.log(`FCM send: success=${res.successCount}/${tokens.length} failure=${res.failureCount}`);
+
+      // Dọn token die (unregistered / invalid) + log lý do cho token fail khác
       const dead: string[] = [];
       res.responses.forEach((r, i) => {
         if (!r.success) {
-          const code = r.error?.code || '';
-          if (code.includes('registration-token-not-registered') || code.includes('invalid-registration-token')) {
+          const code = r.error?.code || 'unknown';
+          const msg = r.error?.message || '';
+          this.logger.warn(`FCM fail token[${i}]: code=${code} msg=${msg}`);
+          if (code.includes('registration-token-not-registered') || code.includes('invalid-registration-token') || code.includes('invalid-argument')) {
             dead.push(tokens[i]);
           }
         }
@@ -102,7 +110,7 @@ export class FcmService implements OnModuleInit {
         this.logger.log(`Dọn ${dead.length} token die`);
       }
     } catch (e: any) {
-      this.logger.error(`FCM send lỗi: ${e.message}`);
+      this.logger.error(`FCM send exception: ${e.message}`, e.stack);
     }
   }
 }
