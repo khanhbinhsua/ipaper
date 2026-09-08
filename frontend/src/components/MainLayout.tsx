@@ -39,7 +39,9 @@ export default function MainLayout() {
   const isMobile = !screens.md; // < 768px
   const [drawerOpen, setDrawerOpen] = useState(false);
 
-  useEffect(() => { init(); }, [init]);
+  // init 1 lần khi mount — Zustand action stable nên không cần dep
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => { init(); }, []);
 
   const handleLogout = () => { disconnect(); logout(); navigate('/login'); };
 

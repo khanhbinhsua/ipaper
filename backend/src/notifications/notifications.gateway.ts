@@ -3,16 +3,19 @@ import {
 } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
 import { JwtService } from '@nestjs/jwt';
-import { Logger } from '@nestjs/common';
 
 /**
  * Gateway realtime. Client kết nối với token JWT ở handshake.auth.token.
  * Mỗi user join room riêng `user:<id>` để nhận thông báo cá nhân.
+ * Không log connect/disconnect vì iOS + PWA hay ngắt/nối liên tục
+ * (khóa màn hình, chuyển tab...) → gây spam log.
  */
-@WebSocketGateway({ cors: { origin: true, credentials: true } })
+@WebSocketGateway({
+  cors: { origin: true, credentials: true },
+  pingInterval: 30000,   // ping mỗi 30s (thay vì 25s mặc định)
+  pingTimeout: 60000,    // chờ pong tới 60s trước khi đóng (thay vì 20s)
+})
 export class NotificationsGateway implements OnGatewayConnection, OnGatewayDisconnect {
-  private readonly logger = new Logger(NotificationsGateway.name);
-
   @WebSocketServer()
   server: Server;
 
@@ -24,14 +27,13 @@ export class NotificationsGateway implements OnGatewayConnection, OnGatewayDisco
       const payload = this.jwt.verify(token);
       const userId = payload.sub;
       client.join(`user:${userId}`);
-      this.logger.debug(`User ${userId} connected (${client.id})`);
     } catch {
       client.disconnect();
     }
   }
 
-  handleDisconnect(client: Socket) {
-    this.logger.debug(`Client disconnected (${client.id})`);
+  handleDisconnect(_client: Socket) {
+    // im lặng — client sẽ tự reconnect
   }
 
   // Đẩy thông báo tới 1 user
