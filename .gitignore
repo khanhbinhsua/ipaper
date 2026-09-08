@@ -5,3 +5,6 @@ dist/
 .DS_Store
 deploy/thumbs/
 deploy/shots-mobile/
+# Firebase Admin SDK key — NHẠY CẢM, không được commit
+firebase-admin.json
+*firebase-adminsdk*.json

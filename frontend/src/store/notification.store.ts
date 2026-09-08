@@ -51,6 +51,18 @@ export const useNotificationStore = create<NotiState>((set, get) => ({
       if (noti.documentId) queryClient.invalidateQueries({ queryKey: ['document', noti.documentId] });
     });
     set({ socket });
+
+    // Xin quyền + đăng ký FCM token (chỉ chạy 1 lần / lần đăng nhập)
+    // Không chặn flow — nếu user từ chối cũng OK, vẫn có Socket.IO
+    try {
+      const { requestPushPermissionAndGetToken } = await import('../lib/firebase');
+      const fcmToken = await requestPushPermissionAndGetToken();
+      if (fcmToken) {
+        await api.post('/notifications/push-token', { token: fcmToken });
+      }
+    } catch (e) {
+      console.warn('[FCM] Không đăng ký được push token:', e);
+    }
   },
 
   markRead: async (id) => {

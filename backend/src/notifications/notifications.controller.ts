@@ -1,11 +1,23 @@
-import { Controller, Get, Patch, Param, UseGuards, Request } from '@nestjs/common';
+import { Controller, Get, Patch, Post, Delete, Param, Body, UseGuards, Request, Headers } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { NotificationsService } from './notifications.service';
+import { FcmService } from './fcm.service';
 
 @UseGuards(JwtAuthGuard)
 @Controller('notifications')
 export class NotificationsController {
-  constructor(private service: NotificationsService) {}
+  constructor(private service: NotificationsService, private fcm: FcmService) {}
+
+  // Đăng ký FCM token của thiết bị hiện tại vào user đăng nhập
+  @Post('push-token')
+  registerToken(@Request() req, @Body() body: { token: string }, @Headers('user-agent') ua: string) {
+    return this.fcm.registerToken(req.user.id, body.token, ua);
+  }
+
+  @Delete('push-token/:token')
+  unregisterToken(@Param('token') token: string) {
+    return this.fcm.unregisterToken(token);
+  }
 
   @Get()
   list(@Request() req) {
