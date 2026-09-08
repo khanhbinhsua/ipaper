@@ -13,8 +13,8 @@ const firebaseConfig = {
   appId: '1:463850684161:web:dc837b72434a6137ca2500',
 };
 
-// VAPID public key — CẬP NHẬT khi anh gửi
-export const VAPID_PUBLIC_KEY = '__PASTE_VAPID_KEY_HERE__';
+// VAPID public key (Web Push certificates từ Firebase Console → Cloud Messaging)
+export const VAPID_PUBLIC_KEY = 'BFO19Bbwe8LEoqD2tSATtNRJ4cQ_wiegJ-bRHQkP9BGazex1xjO7wOPtiWL8r94YGTkDOgHWAWQjppC0hlqNAus';
 
 const app = initializeApp(firebaseConfig);
 

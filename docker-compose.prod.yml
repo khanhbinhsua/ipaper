@@ -57,6 +57,10 @@ services:
     restart: unless-stopped
     env_file: .env.prod
     networks: [default, anonmed]
+    # Mount file Firebase Admin (không commit git — copy thẳng lên VPS).
+    # Nếu file chưa có → chỉ warning, backend vẫn chạy, chỉ mất push (Socket.IO vẫn OK).
+    volumes:
+      - ./backend/firebase-admin.json:/app/firebase-admin.json:ro
     depends_on:
       postgres: { condition: service_healthy }
       redis: { condition: service_healthy }
