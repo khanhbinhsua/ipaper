@@ -19,6 +19,14 @@ export class NotificationsController {
     return this.fcm.unregisterToken(token);
   }
 
+  // Gửi push test cho chính user đang đăng nhập — dùng để kiểm tra push có tới không
+  // Test: khóa màn hình rồi gọi API này, phải nhận notification trên khóa màn hình
+  @Post('test-push')
+  async testPush(@Request() req) {
+    await this.service.notify(req.user.id, 'Test push từ iPaper — nếu bạn thấy dòng này trên khóa màn hình là OK 🎉');
+    return { message: 'Đã gửi. Kiểm tra thông báo trên thiết bị.' };
+  }
+
   @Get()
   list(@Request() req) {
     return this.service.list(req.user.id);
