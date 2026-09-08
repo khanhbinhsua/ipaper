@@ -37,18 +37,31 @@ export class FcmService implements OnModuleInit {
     }
   }
 
-  // Đăng ký / cập nhật token cho user (upsert theo token)
+  // Đăng ký / cập nhật token cho user
+  // Cùng 1 (user, userAgent) → coi là cùng thiết bị → thay thế token cũ (tránh push nhiều lần)
   async registerToken(userId: string, token: string, userAgent?: string) {
     if (!token) return;
-    // Nếu token đã có → gắn sang user hiện tại (user cũ trên cùng device sẽ mất → hợp lý)
-    const existing = await this.tokenRepo.findOne({ where: { token } });
-    if (existing) {
-      existing.userId = userId;
-      existing.userAgent = userAgent || existing.userAgent;
-      await this.tokenRepo.save(existing);
-    } else {
-      await this.tokenRepo.save(this.tokenRepo.create({ userId, token, userAgent }));
+    // Token này đã có ở DB? → gắn sang user hiện tại
+    const byToken = await this.tokenRepo.findOne({ where: { token } });
+    if (byToken) {
+      byToken.userId = userId;
+      byToken.userAgent = userAgent || byToken.userAgent;
+      await this.tokenRepo.save(byToken);
+      // Dọn các token cũ khác của user này trên cùng UA (chỉ giữ 1 token/device)
+      if (userAgent) {
+        await this.tokenRepo
+          .createQueryBuilder()
+          .delete()
+          .where('"userId" = :userId AND "userAgent" = :ua AND token != :token', { userId, ua: userAgent, token })
+          .execute();
+      }
+      return;
     }
+    // Token mới → xóa các token cũ cùng (user, UA), rồi lưu mới
+    if (userAgent) {
+      await this.tokenRepo.delete({ userId, userAgent });
+    }
+    await this.tokenRepo.save(this.tokenRepo.create({ userId, token, userAgent }));
   }
 
   async unregisterToken(token: string) {
