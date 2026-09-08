@@ -15,6 +15,7 @@ import ChangePasswordPage from './pages/ChangePasswordPage';
 import TemplatesPage from './pages/TemplatesPage';
 import AdminUsersPage from './pages/AdminUsersPage';
 import AssignmentsPage from './pages/AssignmentsPage';
+import PwaHelpers from './components/PwaHelpers';
 import { useAuthStore } from './store/auth.store';
 
 function PrivateRoute({ children }: { children: ReactNode }) {
@@ -38,6 +39,7 @@ export default function App() {
           },
         }}
       >
+        <PwaHelpers />
         <BrowserRouter>
           <Routes>
             <Route path="/login" element={<LoginPage />} />

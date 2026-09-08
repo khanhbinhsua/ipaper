@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <rect width="512" height="512" rx="96" fill="#E4002B"/>
+  <!-- Chữ i lớn phía trên -->
+  <circle cx="256" cy="128" r="28" fill="#fff"/>
+  <rect x="228" y="180" width="56" height="200" rx="12" fill="#fff"/>
+  <!-- Ngôi sao ✦ -->
+  <path d="M256 400 L268 428 L296 440 L268 452 L256 480 L244 452 L216 440 L244 428 Z" fill="#F9A01B"/>
+</svg>
