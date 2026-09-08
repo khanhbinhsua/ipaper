@@ -1,8 +1,15 @@
-import { Card, Descriptions, Switch, Avatar, message, Space, Divider } from 'antd';
-import { UserOutlined } from '@ant-design/icons';
+import { Card, Descriptions, Switch, Avatar, message, Space, Divider, Button, Alert } from 'antd';
+import { UserOutlined, BellOutlined } from '@ant-design/icons';
 import { useMutation } from '@tanstack/react-query';
 import { api } from '../lib/api';
 import { useAuthStore } from '../store/auth.store';
+
+// PWA + iOS: kiểm tra có phải PWA cài Home Screen không (Push chỉ hoạt động khi PWA)
+const isStandalone = () =>
+  window.matchMedia('(display-mode: standalone)').matches
+  || (window.navigator as any).standalone === true;
+
+const isIOS = /iPad|iPhone|iPod/.test(window.navigator.userAgent);
 
 const roleLabels: Record<string, string> = { admin: 'Quản trị', staff: 'Nhân viên', manager: 'Quản lý' };
 
@@ -14,6 +21,15 @@ export default function ProfilePage() {
     onSuccess: (_res, vars) => { updateUser(vars); message.success('Đã cập nhật'); },
     onError: () => message.error('Cập nhật thất bại'),
   });
+
+  const testPush = useMutation({
+    mutationFn: () => api.post('/notifications/test-push'),
+    onSuccess: () => message.success('Đã gửi. Khóa màn hình để kiểm tra thông báo đẩy.'),
+    onError: (e: any) => message.error(e.response?.data?.message || 'Không gửi được'),
+  });
+
+  const standalone = isStandalone();
+  const permission = 'Notification' in window ? Notification.permission : 'unsupported';
 
   if (!user) return null;
 
@@ -47,6 +63,39 @@ export default function ProfilePage() {
             <Switch checked={user.notifyEmail} onChange={(v) => mutation.mutate({ notifyEmail: v })} />
           </Space>
         </Space>
+
+        <Divider>Thông báo đẩy (Push)</Divider>
+
+        {/* Chuẩn đoán trực tiếp: cho user biết push có sẵn sàng không */}
+        {isIOS && !standalone && (
+          <Alert type="warning" showIcon style={{ marginBottom: 12 }}
+            message="Chưa cài iPaper vào Màn hình chính"
+            description={<>iPhone chỉ nhận thông báo đẩy khi mở iPaper từ <b>icon Home Screen</b>, không phải Safari. Vào Safari → nút <b>Chia sẻ</b> ⬆ → <b>Thêm vào Màn hình chính</b>, rồi mở lại app từ đó.</>}
+          />
+        )}
+        {permission === 'default' && (
+          <Alert type="info" showIcon style={{ marginBottom: 12 }}
+            message="Chưa cho phép thông báo"
+            description="Bấm 'Gửi thử thông báo' bên dưới — trình duyệt sẽ hỏi cho phép, bấm Cho phép."
+          />
+        )}
+        {permission === 'denied' && (
+          <Alert type="error" showIcon style={{ marginBottom: 12 }}
+            message="Đã tắt thông báo cho iPaper"
+            description="Vào Cài đặt điện thoại → Thông báo → iPaper → bật lại 'Cho phép Thông báo'."
+          />
+        )}
+        {permission === 'granted' && standalone && (
+          <Alert type="success" showIcon style={{ marginBottom: 12 }}
+            message="Sẵn sàng nhận thông báo"
+            description="Bấm 'Gửi thử thông báo', khóa màn hình → phải thấy thông báo trong 3-5 giây."
+          />
+        )}
+
+        <Button type="primary" icon={<BellOutlined />} loading={testPush.isPending}
+          onClick={() => testPush.mutate()}>
+          Gửi thử thông báo cho tôi
+        </Button>
       </Card>
     </div>
   );
