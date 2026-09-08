@@ -13,22 +13,10 @@ firebase.initializeApp({
   appId: '1:463850684161:web:dc837b72434a6137ca2500',
 });
 
-const messaging = firebase.messaging();
-
-// Khi có push message ở background → tự hiển thị notification hệ thống
-messaging.onBackgroundMessage((payload) => {
-  const title = payload.notification?.title || 'iPaper';
-  const body = payload.notification?.body || '';
-  const link = payload.data?.link || '/';
-  self.registration.showNotification(title, {
-    body,
-    icon: '/pwa-192.png',
-    badge: '/pwa-192.png',
-    data: { link },
-    tag: 'ipaper-noti',   // gộp nhiều noti cùng tag (tránh spam)
-    renotify: true,
-  });
-});
+// KHÔNG dùng onBackgroundMessage — Firebase SDK tự hiển thị notification
+// từ trường `notification` trong payload (icon/badge đã set ở webpush.notification bên backend).
+// Nếu thêm handler ở đây, notification sẽ hiện 2 LẦN (SDK auto + handler custom).
+firebase.messaging();
 
 // Click vào notification → mở app tại link tương ứng
 self.addEventListener('notificationclick', (event) => {
