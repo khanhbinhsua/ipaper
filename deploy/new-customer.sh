@@ -115,8 +115,8 @@ ok "Cổng 80/443 trống"
 
 # ---------- 2. Clone / cập nhật code ----------
 if [ -d "$PROJECT_DIR/.git" ]; then
-  info "Project đã có, cập nhật code mới nhất..."
-  (cd "$PROJECT_DIR" && git pull)
+  info "Project đã có, force cập nhật code mới nhất (local changes sẽ bị overwrite)..."
+  (cd "$PROJECT_DIR" && git fetch origin && git reset --hard origin/master && git clean -fd)
 else
   info "Clone code iPaper về $PROJECT_DIR..."
   read -p "GitHub token (quyền read repo): " -s GH_TOKEN
