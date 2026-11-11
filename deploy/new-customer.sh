@@ -128,7 +128,7 @@ ok "Code sẵn sàng"
 
 # ---------- 3. Thay màu brand (nếu khác mặc định) ----------
 if [ "$BRAND_COLOR" != "#E4002B" ]; then
-  info "Thay màu brand $E4002B → $BRAND_COLOR trong frontend..."
+  info "Thay màu brand #E4002B → $BRAND_COLOR trong frontend..."
   find frontend/src frontend/public -type f \( -name '*.tsx' -o -name '*.ts' -o -name '*.css' -o -name '*.html' -o -name '*.svg' \) \
     -exec sed -i "s/#E4002B/$BRAND_COLOR/gi" {} +
   # Favicon PWA cần regenerate — để đó, nhân viên vẫn hoạt động, chỉ icon vẫn đỏ
