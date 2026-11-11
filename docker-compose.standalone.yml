@@ -49,11 +49,6 @@ services:
     networks:
       default:
         aliases: [ipaper-minio]
-    healthcheck:
-      test: ['CMD', 'wget', '-qO-', 'http://localhost:9333/cluster/healthz']
-      interval: 10s
-      timeout: 5s
-      retries: 10
 
   backend:
     build:
@@ -68,7 +63,7 @@ services:
     depends_on:
       postgres: { condition: service_healthy }
       redis: { condition: service_healthy }
-      minio: { condition: service_healthy }
+      minio: { condition: service_started }
 
   frontend:
     build:

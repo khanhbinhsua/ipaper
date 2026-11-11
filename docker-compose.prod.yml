@@ -64,7 +64,7 @@ services:
     depends_on:
       postgres: { condition: service_healthy }
       redis: { condition: service_healthy }
-      minio: { condition: service_healthy }
+      minio: { condition: service_started }
 
   frontend:
     build:
