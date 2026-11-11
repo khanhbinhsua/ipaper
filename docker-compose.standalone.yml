@@ -31,7 +31,8 @@ services:
       retries: 5
 
   minio:
-    image: minio/minio:latest
+    # Pin version cụ thể vì minio/minio:latest hay bị rate-limit/deny trên Docker Hub
+    image: minio/minio:RELEASE.2025-04-22T22-12-26Z
     container_name: ipaper_minio
     restart: unless-stopped
     command: server /data --console-address ":9001"
