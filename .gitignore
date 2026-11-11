@@ -8,3 +8,5 @@ deploy/shots-mobile/
 # Firebase Admin SDK key — NHẠY CẢM, không được commit
 firebase-admin.json
 *firebase-adminsdk*.json
+# SeaweedFS S3 credentials — sinh từ template lúc deploy
+deploy/seaweedfs-s3.json

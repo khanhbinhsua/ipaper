@@ -16,9 +16,9 @@
         reverse_proxy ipaper_backend:3000
     }
 
-    # File (presigned URL từ MinIO)
+    # File (presigned URL từ S3 storage - SeaweedFS trên cổng 8333)
     handle /ipaper-files/* {
-        reverse_proxy ipaper-minio:9000
+        reverse_proxy ipaper-minio:8333
     }
 
     # Service worker + manifest: no-cache để PWA update được

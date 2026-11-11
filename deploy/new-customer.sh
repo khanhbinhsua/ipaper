@@ -162,9 +162,9 @@ REDIS_PORT=6379
 JWT_SECRET=$JWT_SECRET
 JWT_EXPIRES_IN=8h
 
-# MinIO
+# S3 storage (SeaweedFS - API tương thích với MinIO/AWS S3)
 MINIO_ENDPOINT=ipaper-minio
-MINIO_PORT=9000
+MINIO_PORT=8333
 MINIO_USE_SSL=false
 MINIO_USER=minioadmin
 MINIO_PASS=$MINIO_PASS
@@ -176,6 +176,12 @@ EOF
 chmod 600 .env.prod
 ok ".env.prod đã tạo (mật khẩu random mạnh)"
 
+# Sinh file config SeaweedFS S3 với credentials khớp
+sed -e "s|__MINIO_USER__|minioadmin|g" -e "s|__MINIO_PASS__|$MINIO_PASS|g" \
+  deploy/seaweedfs-s3.json.template > deploy/seaweedfs-s3.json
+chmod 644 deploy/seaweedfs-s3.json
+ok "seaweedfs-s3.json đã tạo"
+
 # ---------- 4b. Generate Caddyfile phù hợp (IP → HTTP, domain → HTTPS) ----------
 if [ "$IS_IP_ONLY" = "1" ]; then
   info "Chế độ IP-only — Caddy sẽ bind HTTP cổng 80 (không HTTPS)"
@@ -185,7 +191,7 @@ if [ "$IS_IP_ONLY" = "1" ]; then
     encode gzip
     handle /api/*          { reverse_proxy ipaper_backend:3000 }
     handle /socket.io/*    { reverse_proxy ipaper_backend:3000 }
-    handle /ipaper-files/* { reverse_proxy ipaper-minio:9000 }
+    handle /ipaper-files/* { reverse_proxy ipaper-minio:8333 }
     @pwa path /sw.js /workbox-*.js /manifest.webmanifest /firebase-messaging-sw.js
     header @pwa Cache-Control "no-cache, no-store, must-revalidate"
     handle                 { reverse_proxy ipaper_frontend:80 }
