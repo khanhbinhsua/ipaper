@@ -1,20 +1,29 @@
-# Reverse proxy + HTTPS tự động (Let's Encrypt).
-# Domain lấy từ biến môi trường trong .env.prod
-
-# App chính: phục vụ frontend + proxy API/WebSocket sang backend
+# Caddyfile cho iPaper standalone — auto HTTPS Let's Encrypt.
+# Thay {$APP_DOMAIN} = domain thật (lấy từ env)
 {$APP_DOMAIN} {
-	# API và WebSocket → backend
-	@backend path /api/* /socket.io/*
-	reverse_proxy @backend backend:3000
+    encode gzip
 
-	# Còn lại → frontend (static)
-	reverse_proxy frontend:80
+    # API REST -> backend
+    handle /api/* {
+        reverse_proxy ipaper_backend:3000
+    }
 
-	encode gzip
-}
+    # WebSocket (thông báo realtime)
+    handle /socket.io/* {
+        reverse_proxy ipaper_backend:3000
+    }
 
-# Tên miền lưu trữ file (MinIO) — phục vụ link tải/xem PDF (presigned URL)
-{$STORAGE_DOMAIN} {
-	reverse_proxy minio:9000
-	encode gzip
+    # File (presigned URL từ MinIO)
+    handle /ipaper-files/* {
+        reverse_proxy ipaper-minio:9000
+    }
+
+    # Service worker + manifest: no-cache để PWA update được
+    @pwa path /sw.js /workbox-*.js /manifest.webmanifest /firebase-messaging-sw.js
+    header @pwa Cache-Control "no-cache, no-store, must-revalidate"
+
+    # Còn lại -> frontend React SPA
+    handle {
+        reverse_proxy ipaper_frontend:80
+    }
 }
