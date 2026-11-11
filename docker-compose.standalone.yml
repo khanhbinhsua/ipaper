@@ -33,7 +33,7 @@ services:
   minio:
     # Dùng Bitnami vì minio/minio bị deny pull trên Docker Hub (2026).
     # Bitnami image có API S3 tương đương, config env tương thích.
-    image: bitnami/minio:2025
+    image: bitnami/minio:latest
     container_name: ipaper_minio
     restart: unless-stopped
     environment:
