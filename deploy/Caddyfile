@@ -1,5 +1,8 @@
-# Caddyfile cho iPaper standalone — auto HTTPS Let's Encrypt.
-# Thay {$APP_DOMAIN} = domain thật (lấy từ env)
+# Caddyfile cho iPaper standalone.
+# - Nếu APP_DOMAIN là domain: Caddy tự xin HTTPS Let's Encrypt.
+# - Nếu APP_DOMAIN là IP: Caddy bind HTTP cổng 80 (Let's Encrypt không cấp cho IP).
+# Đặt APP_DOMAIN trong .env.prod.
+
 {$APP_DOMAIN} {
     encode gzip
 

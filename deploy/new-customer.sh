@@ -59,7 +59,15 @@ done
 [ -z "$ADMIN_EMAIL" ]  && { ask "Email admin";                         read ADMIN_EMAIL; }
 
 # ---------- validate ----------
-[[ "$DOMAIN" =~ ^[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$ ]] || { err "Domain không hợp lệ: $DOMAIN"; exit 1; }
+# Nhận IP (127.0.0.1), domain (abc.vn), hoặc sslip.io style (1.2.3.4.sslip.io)
+IS_IP_ONLY=0
+if [[ "$DOMAIN" =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+  IS_IP_ONLY=1
+  info "⚠ Dùng IP thuần → sẽ chạy HTTP (không HTTPS). PWA + Push notification sẽ KHÔNG hoạt động."
+  info "  Khuyên dùng miễn phí: ipaper.${DOMAIN//./-}.sslip.io  (tự map về IP $DOMAIN, có HTTPS)"
+elif [[ ! "$DOMAIN" =~ ^[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$ ]]; then
+  err "Domain/IP không hợp lệ: $DOMAIN"; exit 1
+fi
 [[ "$TENANT_SLUG" =~ ^[a-zA-Z0-9]+$ ]]             || { err "Mã tổ chức chỉ dùng chữ+số, không dấu"; exit 1; }
 [[ "$BRAND_COLOR" =~ ^#[0-9A-Fa-f]{6}$ ]]          || { err "Màu brand phải dạng #RRGGBB"; exit 1; }
 
@@ -137,7 +145,7 @@ PORT=3000
 TZ=UTC
 # Lần đầu bật DB_SYNC để tạo bảng; sau khi OK sẽ tự tắt ở cuối script
 DB_SYNC=true
-FRONTEND_URL=https://$DOMAIN
+FRONTEND_URL=$([ "$IS_IP_ONLY" = "1" ] && echo "http://$DOMAIN" || echo "https://$DOMAIN")
 
 # PostgreSQL
 DB_HOST=ipaper_postgres
@@ -162,15 +170,34 @@ MINIO_USER=minioadmin
 MINIO_PASS=$MINIO_PASS
 MINIO_BUCKET=ipaper-files
 MINIO_PUBLIC_ENDPOINT=$DOMAIN
-MINIO_PUBLIC_PORT=443
-MINIO_PUBLIC_USE_SSL=true
+MINIO_PUBLIC_PORT=$([ "$IS_IP_ONLY" = "1" ] && echo "80" || echo "443")
+MINIO_PUBLIC_USE_SSL=$([ "$IS_IP_ONLY" = "1" ] && echo "false" || echo "true")
 EOF
 chmod 600 .env.prod
 ok ".env.prod đã tạo (mật khẩu random mạnh)"
 
+# ---------- 4b. Generate Caddyfile phù hợp (IP → HTTP, domain → HTTPS) ----------
+if [ "$IS_IP_ONLY" = "1" ]; then
+  info "Chế độ IP-only — Caddy sẽ bind HTTP cổng 80 (không HTTPS)"
+  cat > deploy/Caddyfile <<'CADDY'
+# IP-only mode: HTTP thuần, không có SSL
+:80 {
+    encode gzip
+    handle /api/*          { reverse_proxy ipaper_backend:3000 }
+    handle /socket.io/*    { reverse_proxy ipaper_backend:3000 }
+    handle /ipaper-files/* { reverse_proxy ipaper-minio:9000 }
+    @pwa path /sw.js /workbox-*.js /manifest.webmanifest /firebase-messaging-sw.js
+    header @pwa Cache-Control "no-cache, no-store, must-revalidate"
+    handle                 { reverse_proxy ipaper_frontend:80 }
+}
+CADDY
+else
+  info "Caddy sẽ tự xin HTTPS Let's Encrypt — KIỂM TRA DNS $DOMAIN đã trỏ về IP VPS!"
+  # File deploy/Caddyfile template sẵn trong repo đã đúng (dùng {$APP_DOMAIN})
+fi
+
 # ---------- 5. Build & chạy stack ----------
 info "Build + chạy stack (Postgres, Redis, MinIO, Backend, Frontend, Caddy)..."
-info "Caddy sẽ tự xin HTTPS Let's Encrypt — KIỂM TRA DNS $DOMAIN ĐÃ TRỎ VỀ IP VPS!"
 docker compose -f docker-compose.standalone.yml --env-file .env.prod up -d --build
 
 info "Đợi backend khởi động + tạo schema DB (60s)..."
@@ -205,8 +232,17 @@ cat > "$CRED_FILE" <<EOF
 ╚══════════════════════════════════════════════╝
 
 TRUY CẬP WEB
-  URL:           https://$DOMAIN
+  URL:           $([ "$IS_IP_ONLY" = "1" ] && echo "http" || echo "https")://$DOMAIN
   Mã tổ chức:    $TENANT_SLUG
+$([ "$IS_IP_ONLY" = "1" ] && cat <<'NOTE'
+  ⚠ Đang chạy HTTP (vì dùng IP) — PWA + Push notification KHÔNG hoạt động.
+    Khi có domain thật:
+      1. Sửa APP_DOMAIN trong .env.prod thành domain mới
+      2. Sửa MINIO_PUBLIC_USE_SSL=true, MINIO_PUBLIC_PORT=443 trong .env.prod
+      3. Khôi phục deploy/Caddyfile từ repo: git checkout deploy/Caddyfile
+      4. docker compose -f docker-compose.standalone.yml --env-file .env.prod up -d
+NOTE
+)
 
 TÀI KHOẢN ADMIN (đổi mật khẩu NGAY sau lần đăng nhập đầu)
   Username:      $ADMIN_USER
@@ -243,7 +279,8 @@ chmod 600 "$CRED_FILE"
 echo
 ok "DEPLOY THÀNH CÔNG!"
 echo
-echo "  ${C}Web:${N}        https://$DOMAIN"
+PROTO=$([ "$IS_IP_ONLY" = "1" ] && echo "http" || echo "https")
+echo "  ${C}Web:${N}        $PROTO://$DOMAIN"
 echo "  ${C}Tổ chức:${N}    $TENANT_SLUG"
 echo "  ${C}Admin:${N}      $ADMIN_USER / $ADMIN_PASS"
 echo
