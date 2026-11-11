@@ -182,6 +182,12 @@ sed -e "s|__MINIO_USER__|minioadmin|g" -e "s|__MINIO_PASS__|$MINIO_PASS|g" \
 chmod 644 deploy/seaweedfs-s3.json
 ok "seaweedfs-s3.json đã tạo"
 
+# Nếu chưa có firebase-admin.json → tạo file giả (JSON hợp lệ) để Docker không mount thành directory
+if [ ! -f backend/firebase-admin.json ]; then
+  echo '{}' > backend/firebase-admin.json
+  info "firebase-admin.json chưa có → tạo file giả. Push notification tắt. Thay thế sau để bật push."
+fi
+
 # ---------- 4b. Generate Caddyfile phù hợp (IP → HTTP, domain → HTTPS) ----------
 if [ "$IS_IP_ONLY" = "1" ]; then
   info "Chế độ IP-only — Caddy sẽ bind HTTP cổng 80 (không HTTPS)"
