@@ -146,7 +146,7 @@ export default function AssignmentsPage({ type }: Props) {
   };
 
   const columns = [
-    { title: 'Mã', dataIndex: 'code', render: (v: string) => <b style={{ color: '#E4002B' }}>{v}</b>, width: 150 },
+    { title: 'Mã', dataIndex: 'code', render: (v: string) => <b style={{ color: '#00ADA8' }}>{v}</b>, width: 150 },
     { title: 'Tiêu đề', dataIndex: 'title' },
     ...(isTask ? [] : [
       { title: 'Từ bộ phận', dataIndex: 'fromOrgUnit', render: (v: string) => v || '—' },
@@ -184,7 +184,7 @@ export default function AssignmentsPage({ type }: Props) {
     { title: 'Ưu tiên', dataIndex: 'priority', render: (v: string) => <Tag color={priorityColors[v]}>{priorityLabels[v] ?? v}</Tag> },
     { title: 'Đính kèm', dataIndex: 'attachments', render: (v: Attachment[]) => v?.length ? <Tag icon={<PaperClipOutlined />} color="green">{v.length}</Tag> : '—' },
     { title: 'Trạng thái', dataIndex: 'status', render: (v: string) => <Tag color={statusColors[v]}>{statusLabels[v] ?? v}</Tag> },
-    { title: 'Hạn', dataIndex: 'dueDate', render: (v: string) => v ? vnTime(v, 'DD/MM/YYYY') : '—' },
+    { title: 'Hạn', dataIndex: 'dueDate', render: (v: string) => v ? vnTime(v, 'DD/MM/YYYY HH:mm') : '—' },
     {
       title: 'Thao tác', key: 'act', width: 200,
       render: (_: any, r: any) => {
@@ -269,7 +269,12 @@ export default function AssignmentsPage({ type }: Props) {
               <Select options={Object.entries(priorityLabels).map(([v, l]) => ({ value: v, label: l }))} />
             </Form.Item>
             <Form.Item name="dueDate" label="Hạn hoàn thành">
-              <DatePicker style={{ width: '100%' }} format="DD/MM/YYYY" />
+              <DatePicker
+                style={{ width: '100%' }}
+                showTime={{ format: 'HH:mm', minuteStep: 5 }}
+                format="DD/MM/YYYY HH:mm"
+                placeholder="Chọn ngày và giờ"
+              />
             </Form.Item>
           </div>
 
@@ -348,7 +353,7 @@ export default function AssignmentsPage({ type }: Props) {
             )}
             <Descriptions.Item label="Ưu tiên"><Tag color={priorityColors[detail.data.priority]}>{priorityLabels[detail.data.priority]}</Tag></Descriptions.Item>
             <Descriptions.Item label="Trạng thái"><Tag color={statusColors[detail.data.status]}>{statusLabels[detail.data.status]}</Tag></Descriptions.Item>
-            <Descriptions.Item label="Hạn">{detail.data.dueDate ? vnTime(detail.data.dueDate, 'DD/MM/YYYY') : '—'}</Descriptions.Item>
+            <Descriptions.Item label="Hạn">{detail.data.dueDate ? vnTime(detail.data.dueDate, 'DD/MM/YYYY HH:mm') : '—'}</Descriptions.Item>
             <Descriptions.Item label="Hoàn thành">{detail.data.completedAt ? vnTime(detail.data.completedAt) : '—'}</Descriptions.Item>
             <Descriptions.Item label="Nội dung" span={2}>{detail.data.description || '—'}</Descriptions.Item>
             <Descriptions.Item label="Ghi chú tiến độ" span={2}>{detail.data.progressNote || '—'}</Descriptions.Item>
@@ -358,7 +363,7 @@ export default function AssignmentsPage({ type }: Props) {
         {detail.data && (
           <div style={{ marginTop: 16 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-              <b style={{ color: '#E4002B' }}>📎 File đính kèm</b>
+              <b style={{ color: '#00ADA8' }}>📎 File đính kèm</b>
               {((detail.data.assigneeIds && detail.data.assigneeIds.includes(user?.id)) || detail.data.assigneeId === user?.id || detail.data.assignerId === user?.id) && (
                 <Upload customRequest={uploadToDetail} showUploadList={false} multiple>
                   <Button size="small" icon={<UploadOutlined />}>Thêm file</Button>
